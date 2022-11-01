@@ -4,10 +4,10 @@ import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.rossonet.opcua.milo.Main;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.rossonet.main.Main;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class MainTest {
