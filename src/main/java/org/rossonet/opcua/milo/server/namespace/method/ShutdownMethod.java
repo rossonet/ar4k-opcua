@@ -14,15 +14,20 @@ import org.eclipse.milo.opcua.sdk.server.api.methods.AbstractMethodInvocationHan
 import org.eclipse.milo.opcua.sdk.server.nodes.UaMethodNode;
 import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
 import org.eclipse.milo.opcua.stack.core.types.structured.Argument;
+import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
+import org.rossonet.opcua.milo.server.listener.ShutdownListener;
+import org.rossonet.opcua.milo.server.listener.ShutdownListener.ShutdownReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ShutdownMethod extends AbstractMethodInvocationHandler {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+	private final Ar4kOpcUaServer server;
 
-	public ShutdownMethod(UaMethodNode node) {
+	public ShutdownMethod(Ar4kOpcUaServer server, UaMethodNode node) {
 		super(node);
+		this.server = server;
 	}
 
 	@Override
@@ -37,8 +42,15 @@ public class ShutdownMethod extends AbstractMethodInvocationHandler {
 
 	@Override
 	protected Variant[] invoke(InvocationContext invocationContext, Variant[] inputValues) {
-		logger.debug("Invoking shutdown() method of objectId={}", invocationContext.getObjectId());
-		// TODO invocare shutdown
+		logger.info("Invoking shutdown() method of objectId={}", invocationContext.getObjectId());
+		for (final ShutdownListener shutdownListener : server.listShutdownHooks()) {
+			try {
+				final ShutdownReason reason = new ShutdownReason();
+				shutdownListener.shutdown(reason);
+			} catch (final Exception a) {
+				logger.error("invoke shutdown hook", a);
+			}
+		}
 		return new Variant[0];
 	}
 

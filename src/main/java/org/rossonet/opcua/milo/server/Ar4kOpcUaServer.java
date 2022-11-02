@@ -1,8 +1,10 @@
 package org.rossonet.opcua.milo.server;
 
 import java.io.Closeable;
+import java.util.Collection;
 
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
+import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
 
 public interface Ar4kOpcUaServer extends Closeable {
@@ -11,14 +13,20 @@ public interface Ar4kOpcUaServer extends Closeable {
 		return DefaultAr4kOpcUaServer.getNewServer(opcUaServerConfiguration);
 	}
 
-	ManagedNamespace getNamespace();
+	public void addShutdownHook(ShutdownListener shutdownListener);
 
-	OpcUaServerConfiguration getOpcUaServerConfiguration();
+	public void removeShutdownHook(ShutdownListener shutdownListener);
 
-	OpcUaServer getServer();
+	public ManagedNamespace getNamespace();
 
-	void shutdown();
+	public OpcUaServerConfiguration getOpcUaServerConfiguration();
 
-	void startup() throws Exception;
+	public OpcUaServer getServer();
+
+	public Collection<ShutdownListener> listShutdownHooks();
+
+	public void shutdown() throws Exception;
+
+	public void startup() throws Exception;
 
 }

@@ -25,7 +25,6 @@ import org.eclipse.milo.opcua.sdk.core.Reference;
 import org.eclipse.milo.opcua.sdk.core.ValueRank;
 import org.eclipse.milo.opcua.sdk.core.ValueRanks;
 import org.eclipse.milo.opcua.sdk.server.Lifecycle;
-import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
 import org.eclipse.milo.opcua.sdk.server.api.DataItem;
 import org.eclipse.milo.opcua.sdk.server.api.ManagedNamespaceWithLifecycle;
 import org.eclipse.milo.opcua.sdk.server.api.MonitoredItem;
@@ -65,6 +64,7 @@ import org.eclipse.milo.opcua.stack.core.types.structured.Range;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureDefinition;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureDescription;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureField;
+import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
 import org.rossonet.opcua.milo.server.namespace.method.GenerateEventMethod;
 import org.rossonet.opcua.milo.server.namespace.method.ShutdownMethod;
 import org.rossonet.opcua.milo.server.namespace.method.SqrtMethod;
@@ -118,7 +118,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 			{ "QualifiedNameArray", Identifiers.QualifiedName, new QualifiedName(1234, "defg") },
 			{ "NodeIdArray", Identifiers.NodeId, new NodeId(1234, "abcd") } };
 
-	private final Logger logger = LoggerFactory.getLogger(getClass());
+	private static final Logger logger = LoggerFactory.getLogger(ManagedNamespace.class);
 
 	private volatile Thread eventThread;
 	private volatile boolean keepPostingEvents = true;
@@ -129,10 +129,12 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 	private final SubscriptionModel subscriptionModel;
 
-	public ManagedNamespace(OpcUaServer server) {
-		super(server, NAMESPACE_URI);
+	private final Ar4kOpcUaServer opcUaServer;
 
-		subscriptionModel = new SubscriptionModel(server, this);
+	public ManagedNamespace(Ar4kOpcUaServer opcUaServer) {
+		super(opcUaServer.getServer(), NAMESPACE_URI);
+		this.opcUaServer = opcUaServer;
+		subscriptionModel = new SubscriptionModel(opcUaServer.getServer(), this);
 		dictionaryManager = new DataTypeDictionaryManager(getNodeContext(), NAMESPACE_URI);
 
 		getLifecycleManager().addLifecycle(dictionaryManager);
@@ -535,7 +537,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				.setDisplayName(new LocalizedText(null, "shutdown()"))
 				.setDescription(LocalizedText.english("Shutdown the opcua server.")).build();
 
-		final ShutdownMethod shutdownMethod = new ShutdownMethod(methodNode);
+		final ShutdownMethod shutdownMethod = new ShutdownMethod(opcUaServer, methodNode);
 		methodNode.setInputArguments(shutdownMethod.getInputArguments());
 		methodNode.setOutputArguments(shutdownMethod.getOutputArguments());
 		methodNode.setInvocationHandler(shutdownMethod);
@@ -758,49 +760,51 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 	}
 
 	private void startBogusEventNotifier() {
-		// Set the EventNotifier bit on Server Node for Events.
-		final UaNode serverNode = getServer().getAddressSpaceManager().getManagedNode(Identifiers.Server).orElse(null);
+		if (getServer() != null && getServer().getEventFactory() != null) {
+			// Set the EventNotifier bit on Server Node for Events.
+			final UaNode serverNode = getServer().getAddressSpaceManager().getManagedNode(Identifiers.Server)
+					.orElse(null);
 
-		if (serverNode instanceof ServerTypeNode) {
-			((ServerTypeNode) serverNode).setEventNotifier(ubyte(1));
+			if (serverNode instanceof ServerTypeNode) {
+				((ServerTypeNode) serverNode).setEventNotifier(ubyte(1));
 
-			// Post a bogus Event every couple seconds
-			eventThread = new Thread(() -> {
-				while (keepPostingEvents) {
-					try {
-						final BaseEventTypeNode eventNode = getServer().getEventFactory()
-								.createEvent(newNodeId(UUID.randomUUID()), Identifiers.BaseEventType);
+				// Post a bogus Event every couple seconds
+				eventThread = new Thread(() -> {
+					while (keepPostingEvents) {
+						try {
+							final BaseEventTypeNode eventNode = getServer().getEventFactory()
+									.createEvent(newNodeId(UUID.randomUUID()), Identifiers.BaseEventType);
 
-						eventNode.setBrowseName(new QualifiedName(1, "foo"));
-						eventNode.setDisplayName(LocalizedText.english("foo"));
-						eventNode.setEventId(ByteString.of(new byte[] { 0, 1, 2, 3 }));
-						eventNode.setEventType(Identifiers.BaseEventType);
-						eventNode.setSourceNode(serverNode.getNodeId());
-						eventNode.setSourceName(serverNode.getDisplayName().getText());
-						eventNode.setTime(DateTime.now());
-						eventNode.setReceiveTime(DateTime.NULL_VALUE);
-						eventNode.setMessage(LocalizedText.english("event message!"));
-						eventNode.setSeverity(ushort(2));
+							eventNode.setBrowseName(new QualifiedName(1, "foo"));
+							eventNode.setDisplayName(LocalizedText.english("foo"));
+							eventNode.setEventId(ByteString.of(new byte[] { 0, 1, 2, 3 }));
+							eventNode.setEventType(Identifiers.BaseEventType);
+							eventNode.setSourceNode(serverNode.getNodeId());
+							eventNode.setSourceName(serverNode.getDisplayName().getText());
+							eventNode.setTime(DateTime.now());
+							eventNode.setReceiveTime(DateTime.NULL_VALUE);
+							eventNode.setMessage(LocalizedText.english("event message!"));
+							eventNode.setSeverity(ushort(2));
 
-						// noinspection UnstableApiUsage
-						getServer().getEventBus().post(eventNode);
+							// noinspection UnstableApiUsage
+							getServer().getEventBus().post(eventNode);
 
-						eventNode.delete();
-					} catch (final Throwable e) {
-						logger.error("Error creating EventNode: {}", e.getMessage(), e);
+							eventNode.delete();
+						} catch (final Throwable e) {
+							logger.error("Error creating EventNode: {}", e.getMessage(), e);
+						}
+
+						try {
+							// noinspection BusyWait
+							Thread.sleep(2_000);
+						} catch (final InterruptedException ignored) {
+							// ignored
+						}
 					}
+				}, "bogus-event-poster");
 
-					try {
-						// noinspection BusyWait
-						Thread.sleep(2_000);
-					} catch (final InterruptedException ignored) {
-						// ignored
-					}
-				}
-			}, "bogus-event-poster");
-
-			eventThread.start();
+				eventThread.start();
+			}
 		}
 	}
-
 }

@@ -7,11 +7,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.function.Predicate;
 
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.stack.client.security.DefaultClientCertificateValidator;
 import org.eclipse.milo.opcua.stack.core.security.DefaultTrustListManager;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
+import org.eclipse.milo.opcua.stack.core.types.structured.EndpointDescription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +74,7 @@ class DefaultAr4kOpcUaClient implements Ar4kOpcUaClient {
 				trustListManager);
 
 		return OpcUaClient.create(opcUaClientConfiguration.getEndpointUrl(),
-				endpoints -> endpoints.stream().filter(opcUaClientConfiguration.endpointFilter()).findFirst(),
+				endpoints -> endpoints.stream().filter(endpointFilter()).findFirst(),
 				configBuilder -> configBuilder
 						.setApplicationName(LocalizedText.english(opcUaClientConfiguration.getLocalizedEnglishText()))
 						.setApplicationUri(opcUaClientConfiguration.getApplicationUri())
@@ -89,6 +91,10 @@ class DefaultAr4kOpcUaClient implements Ar4kOpcUaClient {
 			client.disconnect();
 		}
 		client = null;
+	}
+
+	public Predicate<EndpointDescription> endpointFilter() {
+		return e -> opcUaClientConfiguration.getSecurityPolicy().getUri().equals(e.getSecurityPolicyUri());
 	}
 
 	@Override

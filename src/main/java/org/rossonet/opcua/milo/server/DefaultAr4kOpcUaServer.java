@@ -12,6 +12,8 @@ import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,6 +44,7 @@ import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateGenerator;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedHttpsCertificateBuilder;
 import org.eclipse.milo.opcua.stack.server.EndpointConfiguration;
 import org.eclipse.milo.opcua.stack.server.security.DefaultServerCertificateValidator;
+import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +54,7 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	private static final Logger logger = LoggerFactory.getLogger(DefaultAr4kOpcUaServer.class);
 
 	static {
-		// Required for SecurityPolicy.Aes256_Sha256_RsaPss
 		Security.addProvider(new BouncyCastleProvider());
-
 		try {
 			NonceUtil.blockUntilSecureRandomSeeded(10, TimeUnit.SECONDS);
 		} catch (ExecutionException | InterruptedException | TimeoutException e) {
@@ -71,8 +72,16 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 
 	private final OpcUaServerConfiguration opcUaServerConfiguration;
 
+	private final Set<ShutdownListener> shutdownListeners = new HashSet<>();
+
 	private DefaultAr4kOpcUaServer(OpcUaServerConfiguration opcUaServerConfiguration) {
 		this.opcUaServerConfiguration = opcUaServerConfiguration;
+	}
+
+	@Override
+	public void addShutdownHook(ShutdownListener shutdownListener) {
+		shutdownListeners.add(shutdownListener);
+
 	}
 
 	private EndpointConfiguration buildHttpsEndpoint(final EndpointConfiguration.Builder base) {
@@ -94,18 +103,18 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 		final Set<EndpointConfiguration> endpointConfigurations = new LinkedHashSet<>();
 
 		final List<String> bindAddresses = newArrayList();
-		bindAddresses.add("0.0.0.0");
+		bindAddresses.add(opcUaServerConfiguration.getBindAddresses());
 
 		final Set<String> hostnames = new LinkedHashSet<>();
 		hostnames.add(HostnameUtil.getHostname());
-		hostnames.addAll(HostnameUtil.getHostnames("0.0.0.0"));
+		hostnames.addAll(opcUaServerConfiguration.getHostnames());
 
 		for (final String bindAddress : bindAddresses) {
 			for (final String hostname : hostnames) {
 				final EndpointConfiguration.Builder builder = EndpointConfiguration.newBuilder()
-						.setBindAddress(bindAddress).setHostname(hostname).setPath("/milo").setCertificate(certificate)
-						.addTokenPolicies(USER_TOKEN_POLICY_ANONYMOUS, USER_TOKEN_POLICY_USERNAME,
-								USER_TOKEN_POLICY_X509);
+						.setBindAddress(bindAddress).setHostname(hostname).setPath(opcUaServerConfiguration.getPath())
+						.setCertificate(certificate).addTokenPolicies(USER_TOKEN_POLICY_ANONYMOUS,
+								USER_TOKEN_POLICY_USERNAME, USER_TOKEN_POLICY_X509);
 
 				final EndpointConfiguration.Builder noSecurityBuilder = builder.copy()
 						.setSecurityPolicy(SecurityPolicy.None).setSecurityMode(MessageSecurityMode.None);
@@ -121,6 +130,10 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 				// HTTPS Basic256Sha256 / Sign (SignAndEncrypt not allowed for HTTPS)
 				endpointConfigurations.add(buildHttpsEndpoint(builder.copy()
 						.setSecurityPolicy(SecurityPolicy.Basic256Sha256).setSecurityMode(MessageSecurityMode.Sign)));
+
+				// Anonymous and insecure
+				endpointConfigurations.add(buildHttpsEndpoint(builder.copy().setSecurityPolicy(SecurityPolicy.None)
+						.setSecurityMode(MessageSecurityMode.None)));
 
 				/*
 				 * It's good practice to provide a discovery-specific endpoint with no security.
@@ -198,6 +211,7 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 
 		final Set<EndpointConfiguration> endpointConfigurations = createEndpointConfigurations(certificate);
 
+		@SuppressWarnings("unchecked")
 		final OpcUaServerConfig serverConfig = OpcUaServerConfig.builder().setApplicationUri(applicationUri)
 				.setApplicationName(LocalizedText.english("Eclipse Milo OPC UA Example Server"))
 				.setEndpoints(endpointConfigurations)
@@ -206,13 +220,14 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 				.setCertificateManager(certificateManager).setTrustListManager(trustListManager)
 				.setCertificateValidator(certificateValidator).setHttpsKeyPair(httpsKeyPair)
 				.setHttpsCertificateChain(new X509Certificate[] { httpsCertificate })
-				.setIdentityValidator(new CompositeValidator(identityValidator, x509IdentityValidator))
+				.setIdentityValidator(new CompositeValidator<>(identityValidator, x509IdentityValidator))
 				.setProductUri("urn:eclipse:milo:example-server").build();
 
 		server = new OpcUaServer(serverConfig);
 
-		namespace = new ManagedNamespace(server);
+		namespace = new ManagedNamespace(this);
 		namespace.startup();
+		server.startup();
 		logger.info("OPCUA server started");
 	}
 
@@ -229,6 +244,17 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	@Override
 	public OpcUaServer getServer() {
 		return server;
+	}
+
+	@Override
+	public Collection<ShutdownListener> listShutdownHooks() {
+		return shutdownListeners;
+	}
+
+	@Override
+	public void removeShutdownHook(ShutdownListener shutdownListener) {
+		shutdownListeners.remove(shutdownListener);
+
 	}
 
 	@Override
