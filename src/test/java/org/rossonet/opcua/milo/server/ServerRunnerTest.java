@@ -10,9 +10,9 @@ public class ServerRunnerTest {
 	public static boolean running = true;
 
 	private static final Logger logger = LoggerFactory.getLogger(RunnerMiloTests.class);
-	private static Ar4kOpcUaServer server = null;
-
 	private static OpcUaServerConfiguration opcServerConfiguration;
+
+	private static Ar4kOpcUaServer server = null;
 
 	public static void main(final String[] args) throws Exception {
 		logger.info("starting OPCUA server");
@@ -28,12 +28,11 @@ public class ServerRunnerTest {
 		opcServerConfiguration = new OpcUaServerConfiguration();
 		server = Ar4kOpcUaServer.getNewServer(opcServerConfiguration);
 		final ShutdownListener shutdownReason = new ShutdownListener() {
-
 			@Override
-			public void shutdown(ShutdownReason reason) {
+			public void shutdown(final ShutdownReason reason) {
+				logger.warn("shutdown reason " + reason);
 				running = false;
 			}
-
 		};
 		server.addShutdownHook(shutdownReason);
 		server.startup();

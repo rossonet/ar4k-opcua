@@ -5,7 +5,7 @@ public interface ShutdownListener {
 	public class ShutdownReason {
 
 		public enum ReasonCategory {
-			NORMAL_SHUTDOWN, FATAL_ERROR
+			FATAL_ERROR, NORMAL_SHUTDOWN
 		}
 
 		private final ReasonCategory category;
@@ -16,7 +16,7 @@ public interface ShutdownListener {
 			this(ReasonCategory.NORMAL_SHUTDOWN, "reason not compiled");
 		}
 
-		public ShutdownReason(ReasonCategory category, String reasonDescription) {
+		public ShutdownReason(final ReasonCategory category, final String reasonDescription) {
 			this.category = category;
 			this.reasonDescription = reasonDescription;
 		}
@@ -27,6 +27,17 @@ public interface ShutdownListener {
 
 		public String getReasonDescription() {
 			return reasonDescription;
+		}
+
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder();
+			builder.append("ShutdownReason [category=");
+			builder.append(category);
+			builder.append(", reasonDescription=");
+			builder.append(reasonDescription);
+			builder.append("]");
+			return builder.toString();
 		}
 
 	}

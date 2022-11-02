@@ -9,13 +9,11 @@ import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
 
 public interface Ar4kOpcUaServer extends Closeable {
 
-	public static Ar4kOpcUaServer getNewServer(OpcUaServerConfiguration opcUaServerConfiguration) {
+	public static Ar4kOpcUaServer getNewServer(final OpcUaServerConfiguration opcUaServerConfiguration) {
 		return DefaultAr4kOpcUaServer.getNewServer(opcUaServerConfiguration);
 	}
 
 	public void addShutdownHook(ShutdownListener shutdownListener);
-
-	public void removeShutdownHook(ShutdownListener shutdownListener);
 
 	public ManagedNamespace getNamespace();
 
@@ -24,6 +22,8 @@ public interface Ar4kOpcUaServer extends Closeable {
 	public OpcUaServer getServer();
 
 	public Collection<ShutdownListener> listShutdownHooks();
+
+	public void removeShutdownHook(ShutdownListener shutdownListener);
 
 	public void shutdown() throws Exception;
 

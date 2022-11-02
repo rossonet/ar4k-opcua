@@ -78,6 +78,23 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 	public static final String NAMESPACE_URI = "urn:eclipse:milo:hello-world";
 
+	private static final Logger logger = LoggerFactory.getLogger(ManagedNamespace.class);
+
+	private static final Object[][] STATIC_ARRAY_NODES = new Object[][] {
+			{ "BooleanArray", Identifiers.Boolean, false }, { "ByteArray", Identifiers.Byte, ubyte(0) },
+			{ "SByteArray", Identifiers.SByte, (byte) 0x00 }, { "Int16Array", Identifiers.Int16, (short) 16 },
+			{ "Int32Array", Identifiers.Int32, 32 }, { "Int64Array", Identifiers.Int64, 64L },
+			{ "UInt16Array", Identifiers.UInt16, ushort(16) }, { "UInt32Array", Identifiers.UInt32, uint(32) },
+			{ "UInt64Array", Identifiers.UInt64, ulong(64L) }, { "FloatArray", Identifiers.Float, 3.14f },
+			{ "DoubleArray", Identifiers.Double, 3.14d }, { "StringArray", Identifiers.String, "string value" },
+			{ "DateTimeArray", Identifiers.DateTime, DateTime.now() },
+			{ "GuidArray", Identifiers.Guid, UUID.randomUUID() },
+			{ "ByteStringArray", Identifiers.ByteString, new ByteString(new byte[] { 0x01, 0x02, 0x03, 0x04 }) },
+			{ "XmlElementArray", Identifiers.XmlElement, new XmlElement("<a>hello</a>") },
+			{ "LocalizedTextArray", Identifiers.LocalizedText, LocalizedText.english("localized text") },
+			{ "QualifiedNameArray", Identifiers.QualifiedName, new QualifiedName(1234, "defg") },
+			{ "NodeIdArray", Identifiers.NodeId, new NodeId(1234, "abcd") } };
+
 	private static final Object[][] STATIC_SCALAR_NODES = new Object[][] {
 			{ "Boolean", Identifiers.Boolean, new Variant(false) },
 			{ "Byte", Identifiers.Byte, new Variant(ubyte(0x00)) },
@@ -103,45 +120,25 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 			{ "Duration", Identifiers.Duration, new Variant(1.0) },
 			{ "UtcTime", Identifiers.UtcTime, new Variant(DateTime.now()) }, };
 
-	private static final Object[][] STATIC_ARRAY_NODES = new Object[][] {
-			{ "BooleanArray", Identifiers.Boolean, false }, { "ByteArray", Identifiers.Byte, ubyte(0) },
-			{ "SByteArray", Identifiers.SByte, (byte) 0x00 }, { "Int16Array", Identifiers.Int16, (short) 16 },
-			{ "Int32Array", Identifiers.Int32, 32 }, { "Int64Array", Identifiers.Int64, 64L },
-			{ "UInt16Array", Identifiers.UInt16, ushort(16) }, { "UInt32Array", Identifiers.UInt32, uint(32) },
-			{ "UInt64Array", Identifiers.UInt64, ulong(64L) }, { "FloatArray", Identifiers.Float, 3.14f },
-			{ "DoubleArray", Identifiers.Double, 3.14d }, { "StringArray", Identifiers.String, "string value" },
-			{ "DateTimeArray", Identifiers.DateTime, DateTime.now() },
-			{ "GuidArray", Identifiers.Guid, UUID.randomUUID() },
-			{ "ByteStringArray", Identifiers.ByteString, new ByteString(new byte[] { 0x01, 0x02, 0x03, 0x04 }) },
-			{ "XmlElementArray", Identifiers.XmlElement, new XmlElement("<a>hello</a>") },
-			{ "LocalizedTextArray", Identifiers.LocalizedText, LocalizedText.english("localized text") },
-			{ "QualifiedNameArray", Identifiers.QualifiedName, new QualifiedName(1234, "defg") },
-			{ "NodeIdArray", Identifiers.NodeId, new NodeId(1234, "abcd") } };
-
-	private static final Logger logger = LoggerFactory.getLogger(ManagedNamespace.class);
-
-	private volatile Thread eventThread;
-	private volatile boolean keepPostingEvents = true;
-
-	private final Random random = new Random();
-
 	private final DataTypeDictionaryManager dictionaryManager;
+	private volatile Thread eventThread;
 
-	private final SubscriptionModel subscriptionModel;
+	private volatile boolean keepPostingEvents = true;
 
 	private final Ar4kOpcUaServer opcUaServer;
 
-	public ManagedNamespace(Ar4kOpcUaServer opcUaServer) {
+	private final Random random = new Random();
+
+	private final SubscriptionModel subscriptionModel;
+
+	public ManagedNamespace(final Ar4kOpcUaServer opcUaServer) {
 		super(opcUaServer.getServer(), NAMESPACE_URI);
 		this.opcUaServer = opcUaServer;
 		subscriptionModel = new SubscriptionModel(opcUaServer.getServer(), this);
 		dictionaryManager = new DataTypeDictionaryManager(getNodeContext(), NAMESPACE_URI);
-
 		getLifecycleManager().addLifecycle(dictionaryManager);
 		getLifecycleManager().addLifecycle(subscriptionModel);
-
 		getLifecycleManager().addStartupTask(this::createAndAddNodes);
-
 		getLifecycleManager().addLifecycle(new Lifecycle() {
 			@Override
 			public void shutdown() {
@@ -161,21 +158,37 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		});
 	}
 
-	private void addAdminReadableNodes(UaFolderNode rootNode) {
+	@Override
+	public void onDataItemsCreated(final List<DataItem> dataItems) {
+		subscriptionModel.onDataItemsCreated(dataItems);
+	}
+
+	@Override
+	public void onDataItemsDeleted(final List<DataItem> dataItems) {
+		subscriptionModel.onDataItemsDeleted(dataItems);
+	}
+
+	@Override
+	public void onDataItemsModified(final List<DataItem> dataItems) {
+		subscriptionModel.onDataItemsModified(dataItems);
+	}
+
+	@Override
+	public void onMonitoringModeChanged(final List<MonitoredItem> monitoredItems) {
+		subscriptionModel.onMonitoringModeChanged(monitoredItems);
+	}
+
+	private void addAdminReadableNodes(final UaFolderNode rootNode) {
 		final UaFolderNode adminFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/OnlyAdminCanRead"),
 				newQualifiedName("OnlyAdminCanRead"), LocalizedText.english("OnlyAdminCanRead"));
-
 		getNodeManager().addNode(adminFolder);
 		rootNode.addOrganizes(adminFolder);
-
 		final String name = "String";
 		final UaVariableNode node = new UaVariableNode.UaVariableNodeBuilder(getNodeContext())
 				.setNodeId(newNodeId("HelloWorld/OnlyAdminCanRead/" + name)).setAccessLevel(AccessLevel.READ_WRITE)
 				.setBrowseName(newQualifiedName(name)).setDisplayName(LocalizedText.english(name))
 				.setDataType(Identifiers.String).setTypeDefinition(Identifiers.BaseDataVariableType).build();
-
 		node.setValue(new DataValue(new Variant("shh... don't tell the lusers")));
-
 		node.getFilterChain().addLast(new RestrictedAccessFilter(identity -> {
 			if ("admin".equals(identity)) {
 				return AccessLevel.READ_WRITE;
@@ -183,26 +196,21 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				return AccessLevel.NONE;
 			}
 		}));
-
 		getNodeManager().addNode(node);
 		adminFolder.addOrganizes(node);
 	}
 
-	private void addAdminWritableNodes(UaFolderNode rootNode) {
+	private void addAdminWritableNodes(final UaFolderNode rootNode) {
 		final UaFolderNode adminFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/OnlyAdminCanWrite"),
 				newQualifiedName("OnlyAdminCanWrite"), LocalizedText.english("OnlyAdminCanWrite"));
-
 		getNodeManager().addNode(adminFolder);
 		rootNode.addOrganizes(adminFolder);
-
 		final String name = "String";
 		final UaVariableNode node = new UaVariableNode.UaVariableNodeBuilder(getNodeContext())
 				.setNodeId(newNodeId("HelloWorld/OnlyAdminCanWrite/" + name)).setAccessLevel(AccessLevel.READ_WRITE)
 				.setBrowseName(newQualifiedName(name)).setDisplayName(LocalizedText.english(name))
 				.setDataType(Identifiers.String).setTypeDefinition(Identifiers.BaseDataVariableType).build();
-
 		node.setValue(new DataValue(new Variant("admin was here")));
-
 		node.getFilterChain().addLast(new RestrictedAccessFilter(identity -> {
 			if ("admin".equals(identity)) {
 				return AccessLevel.READ_WRITE;
@@ -215,13 +223,11 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		adminFolder.addOrganizes(node);
 	}
 
-	private void addArrayNodes(UaFolderNode rootNode) {
+	private void addArrayNodes(final UaFolderNode rootNode) {
 		final UaFolderNode arrayTypesFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/ArrayTypes"),
 				newQualifiedName("ArrayTypes"), LocalizedText.english("ArrayTypes"));
-
 		getNodeManager().addNode(arrayTypesFolder);
 		rootNode.addOrganizes(arrayTypesFolder);
-
 		for (final Object[] os : STATIC_ARRAY_NODES) {
 			final String name = (String) os[0];
 			final NodeId typeId = (NodeId) os[1];
@@ -231,7 +237,6 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				Array.set(array, i, value);
 			}
 			final Variant variant = new Variant(array);
-
 			UaVariableNode.build(getNodeContext(), builder -> {
 				builder.setNodeId(newNodeId("HelloWorld/ArrayTypes/" + name));
 				builder.setAccessLevel(AccessLevel.READ_WRITE);
@@ -243,78 +248,61 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				builder.setValueRank(ValueRank.OneDimension.getValue());
 				builder.setArrayDimensions(new UInteger[] { uint(0) });
 				builder.setValue(new DataValue(variant));
-
 				builder.addAttributeFilter(new AttributeLoggingFilter(AttributeId.Value::equals));
-
 				builder.addReference(new Reference(builder.getNodeId(), Identifiers.Organizes,
 						arrayTypesFolder.getNodeId().expanded(), Reference.Direction.INVERSE));
-
 				return builder.buildAndAdd();
 			});
 		}
 	}
 
-	private void addCustomEnumTypeVariable(UaFolderNode rootFolder) throws Exception {
+	private void addCustomEnumTypeVariable(final UaFolderNode rootFolder) throws Exception {
 		final NodeId dataTypeId = CustomEnumType.TYPE_ID.toNodeIdOrThrow(getServer().getNamespaceTable());
-
 		final UaVariableNode customEnumTypeVariable = UaVariableNode.builder(getNodeContext())
 				.setNodeId(newNodeId("HelloWorld/CustomEnumTypeVariable")).setAccessLevel(AccessLevel.READ_WRITE)
 				.setUserAccessLevel(AccessLevel.READ_WRITE).setBrowseName(newQualifiedName("CustomEnumTypeVariable"))
 				.setDisplayName(LocalizedText.english("CustomEnumTypeVariable")).setDataType(dataTypeId)
 				.setTypeDefinition(Identifiers.BaseDataVariableType).build();
-
 		customEnumTypeVariable.setValue(new DataValue(new Variant(CustomEnumType.Field1)));
-
 		getNodeManager().addNode(customEnumTypeVariable);
-
 		customEnumTypeVariable.addReference(new Reference(customEnumTypeVariable.getNodeId(), Identifiers.Organizes,
 				rootFolder.getNodeId().expanded(), false));
 	}
 
-	private void addCustomObjectTypeAndInstance(UaFolderNode rootFolder) {
+	private void addCustomObjectTypeAndInstance(final UaFolderNode rootFolder) {
 		// Define a new ObjectType called "MyObjectType".
 		final UaObjectTypeNode objectTypeNode = UaObjectTypeNode.builder(getNodeContext())
 				.setNodeId(newNodeId("ObjectTypes/MyObjectType")).setBrowseName(newQualifiedName("MyObjectType"))
 				.setDisplayName(LocalizedText.english("MyObjectType")).setIsAbstract(false).build();
-
 		// "Foo" and "Bar" are members. These nodes are what are called "instance
 		// declarations" by the spec.
 		final UaVariableNode foo = UaVariableNode.builder(getNodeContext())
 				.setNodeId(newNodeId("ObjectTypes/MyObjectType.Foo")).setAccessLevel(AccessLevel.READ_WRITE)
 				.setBrowseName(newQualifiedName("Foo")).setDisplayName(LocalizedText.english("Foo"))
 				.setDataType(Identifiers.Int16).setTypeDefinition(Identifiers.BaseDataVariableType).build();
-
 		foo.addReference(new Reference(foo.getNodeId(), Identifiers.HasModellingRule,
 				Identifiers.ModellingRule_Mandatory.expanded(), true));
-
 		foo.setValue(new DataValue(new Variant(0)));
 		objectTypeNode.addComponent(foo);
-
 		final UaVariableNode bar = UaVariableNode.builder(getNodeContext())
 				.setNodeId(newNodeId("ObjectTypes/MyObjectType.Bar")).setAccessLevel(AccessLevel.READ_WRITE)
 				.setBrowseName(newQualifiedName("Bar")).setDisplayName(LocalizedText.english("Bar"))
 				.setDataType(Identifiers.String).setTypeDefinition(Identifiers.BaseDataVariableType).build();
-
 		bar.addReference(new Reference(bar.getNodeId(), Identifiers.HasModellingRule,
 				Identifiers.ModellingRule_Mandatory.expanded(), true));
-
 		bar.setValue(new DataValue(new Variant("bar")));
 		objectTypeNode.addComponent(bar);
-
 		// Tell the ObjectTypeManager about our new type.
 		// This let's us use NodeFactory to instantiate instances of the type.
 		getServer().getObjectTypeManager().registerObjectType(objectTypeNode.getNodeId(), UaObjectNode.class,
 				UaObjectNode::new);
-
 		// Add the inverse SubtypeOf relationship.
 		objectTypeNode.addReference(new Reference(objectTypeNode.getNodeId(), Identifiers.HasSubtype,
 				Identifiers.BaseObjectType.expanded(), false));
-
 		// Add type definition and declarations to address space.
 		getNodeManager().addNode(objectTypeNode);
 		getNodeManager().addNode(foo);
 		getNodeManager().addNode(bar);
-
 		// Use NodeFactory to create instance of MyObjectType called "MyObject".
 		// NodeFactory takes care of recursively instantiating MyObject member nodes
 		// as well as adding all nodes to the address space.
@@ -323,10 +311,8 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 					objectTypeNode.getNodeId());
 			myObject.setBrowseName(newQualifiedName("MyObject"));
 			myObject.setDisplayName(LocalizedText.english("MyObject"));
-
 			// Add forward and inverse references from the root folder.
 			rootFolder.addOrganizes(myObject);
-
 			myObject.addReference(new Reference(myObject.getNodeId(), Identifiers.Organizes,
 					rootFolder.getNodeId().expanded(), false));
 		} catch (final UaException e) {
@@ -334,7 +320,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		}
 	}
 
-	private void addCustomStructTypeVariable(UaFolderNode rootFolder) throws Exception {
+	private void addCustomStructTypeVariable(final UaFolderNode rootFolder) throws Exception {
 		final NodeId dataTypeId = CustomStructType.TYPE_ID.toNodeIdOrThrow(getServer().getNamespaceTable());
 
 		final NodeId binaryEncodingId = CustomStructType.BINARY_ENCODING_ID
@@ -359,7 +345,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				rootFolder.getNodeId().expanded(), false));
 	}
 
-	private void addCustomUnionTypeVariable(UaFolderNode rootFolder) throws Exception {
+	private void addCustomUnionTypeVariable(final UaFolderNode rootFolder) throws Exception {
 		final NodeId dataTypeId = CustomUnionType.TYPE_ID.toNodeIdOrThrow(getServer().getNamespaceTable());
 
 		final NodeId binaryEncodingId = CustomUnionType.BINARY_ENCODING_ID
@@ -384,7 +370,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				rootFolder.getNodeId().expanded(), false));
 	}
 
-	private void addDataAccessNodes(UaFolderNode rootNode) {
+	private void addDataAccessNodes(final UaFolderNode rootNode) {
 		// DataAccess folder
 		final UaFolderNode dataAccessFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/DataAccess"),
 				newQualifiedName("DataAccess"), LocalizedText.english("DataAccess"));
@@ -397,7 +383,8 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 					newNodeId("HelloWorld/DataAccess/AnalogValue"), Identifiers.AnalogItemType,
 					new NodeFactory.InstantiationCallback() {
 						@Override
-						public boolean includeOptionalNode(NodeId typeDefinitionId, QualifiedName browseName) {
+						public boolean includeOptionalNode(final NodeId typeDefinitionId,
+								final QualifiedName browseName) {
 							return true;
 						}
 					});
@@ -416,7 +403,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		}
 	}
 
-	private void addDynamicNodes(UaFolderNode rootNode) {
+	private void addDynamicNodes(final UaFolderNode rootNode) {
 		final UaFolderNode dynamicFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/Dynamic"),
 				newQualifiedName("Dynamic"), LocalizedText.english("Dynamic"));
 
@@ -484,7 +471,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		}
 	}
 
-	private void addGenerateEventMethod(UaFolderNode folderNode) {
+	private void addGenerateEventMethod(final UaFolderNode folderNode) {
 		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
 				.setNodeId(newNodeId("HelloWorld/generateEvent(eventTypeId)"))
 				.setBrowseName(newQualifiedName("generateEvent(eventTypeId)"))
@@ -504,7 +491,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				folderNode.getNodeId().expanded(), false));
 	}
 
-	private void addScalarNodes(UaFolderNode rootNode) {
+	private void addScalarNodes(final UaFolderNode rootNode) {
 		final UaFolderNode scalarTypesFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/ScalarTypes"),
 				newQualifiedName("ScalarTypes"), LocalizedText.english("ScalarTypes"));
 
@@ -531,10 +518,10 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		}
 	}
 
-	private void addShutdownMethod(UaFolderNode folderNode) {
+	private void addShutdownMethod(final UaFolderNode folderNode) {
 		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
-				.setNodeId(newNodeId("HelloWorld/shutdown()")).setBrowseName(newQualifiedName("shutdown()"))
-				.setDisplayName(new LocalizedText(null, "shutdown()"))
+				.setNodeId(newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/shutdown()"))
+				.setBrowseName(newQualifiedName("shutdown()")).setDisplayName(new LocalizedText(null, "shutdown()"))
 				.setDescription(LocalizedText.english("Shutdown the opcua server.")).build();
 
 		final ShutdownMethod shutdownMethod = new ShutdownMethod(opcUaServer, methodNode);
@@ -544,11 +531,11 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 		getNodeManager().addNode(methodNode);
 
-		methodNode.addReference(new Reference(methodNode.getNodeId(), Identifiers.HasComponent,
-				folderNode.getNodeId().expanded(), false));
+		methodNode.addReference(
+				new Reference(methodNode.getNodeId(), Identifiers.HasComponent, Identifiers.Server.expanded(), false));
 	}
 
-	private void addSqrtMethod(UaFolderNode folderNode) {
+	private void addSqrtMethod(final UaFolderNode folderNode) {
 		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
 				.setNodeId(newNodeId("HelloWorld/sqrt(x)")).setBrowseName(newQualifiedName("sqrt(x)"))
 				.setDisplayName(new LocalizedText(null, "sqrt(x)"))
@@ -567,7 +554,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				folderNode.getNodeId().expanded(), false));
 	}
 
-	private void addVariableNodes(UaFolderNode rootNode) {
+	private void addVariableNodes(final UaFolderNode rootNode) {
 		addArrayNodes(rootNode);
 		addScalarNodes(rootNode);
 		addAdminReadableNodes(rootNode);
@@ -577,7 +564,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		addWriteOnlyNodes(rootNode);
 	}
 
-	private void addWriteOnlyNodes(UaFolderNode rootNode) {
+	private void addWriteOnlyNodes(final UaFolderNode rootNode) {
 		final UaFolderNode writeOnlyFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/WriteOnly"),
 				newQualifiedName("WriteOnly"), LocalizedText.english("WriteOnly"));
 
@@ -597,70 +584,53 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		writeOnlyFolder.addOrganizes(node);
 	}
 
+	// TODO revisionare creazione namespace
 	private void createAndAddNodes() {
 		// Create a "HelloWorld" folder and add it to the node manager
-		final NodeId folderNodeId = newNodeId("HelloWorld");
+		final NodeId folderNodeId = newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId());
 
-		final UaFolderNode folderNode = new UaFolderNode(getNodeContext(), folderNodeId, newQualifiedName("HelloWorld"),
-				LocalizedText.english("HelloWorld"));
-
+		final UaFolderNode folderNode = new UaFolderNode(getNodeContext(), folderNodeId,
+				newQualifiedName(opcUaServer.getOpcUaServerConfiguration().getRootBrowseName()),
+				LocalizedText.english(opcUaServer.getOpcUaServerConfiguration().getRootDisplayNameEnglish()));
+		folderNode.setDescription(
+				LocalizedText.english(opcUaServer.getOpcUaServerConfiguration().getRootDescriptionEnglish()));
 		getNodeManager().addNode(folderNode);
 
 		// Make sure our new folder shows up under the server's Objects folder.
 		folderNode.addReference(new Reference(folderNode.getNodeId(), Identifiers.Organizes,
 				Identifiers.ObjectsFolder.expanded(), false));
-
-		// Add the rest of the nodes
-		addVariableNodes(folderNode);
-
-		addSqrtMethod(folderNode);
-
-		addGenerateEventMethod(folderNode);
-
 		addShutdownMethod(folderNode);
+		// Add the rest of the nodes
+		if (opcUaServer.getOpcUaServerConfiguration().enableDemoDatas()) {
+			addVariableNodes(folderNode);
 
-		try {
-			registerCustomEnumType();
-			addCustomEnumTypeVariable(folderNode);
-		} catch (final Exception e) {
-			logger.warn("Failed to register custom enum type", e);
+			addSqrtMethod(folderNode);
+
+			addGenerateEventMethod(folderNode);
+
+			try {
+				registerCustomEnumType();
+				addCustomEnumTypeVariable(folderNode);
+			} catch (final Exception e) {
+				logger.warn("Failed to register custom enum type", e);
+			}
+
+			try {
+				registerCustomStructType();
+				addCustomStructTypeVariable(folderNode);
+			} catch (final Exception e) {
+				logger.warn("Failed to register custom struct type", e);
+			}
+
+			try {
+				registerCustomUnionType();
+				addCustomUnionTypeVariable(folderNode);
+			} catch (final Exception e) {
+				logger.warn("Failed to register custom struct type", e);
+			}
+
+			addCustomObjectTypeAndInstance(folderNode);
 		}
-
-		try {
-			registerCustomStructType();
-			addCustomStructTypeVariable(folderNode);
-		} catch (final Exception e) {
-			logger.warn("Failed to register custom struct type", e);
-		}
-
-		try {
-			registerCustomUnionType();
-			addCustomUnionTypeVariable(folderNode);
-		} catch (final Exception e) {
-			logger.warn("Failed to register custom struct type", e);
-		}
-
-		addCustomObjectTypeAndInstance(folderNode);
-	}
-
-	@Override
-	public void onDataItemsCreated(List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsCreated(dataItems);
-	}
-
-	@Override
-	public void onDataItemsDeleted(List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsDeleted(dataItems);
-	}
-
-	@Override
-	public void onDataItemsModified(List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsModified(dataItems);
-	}
-
-	@Override
-	public void onMonitoringModeChanged(List<MonitoredItem> monitoredItems) {
-		subscriptionModel.onMonitoringModeChanged(monitoredItems);
 	}
 
 	private void registerCustomEnumType() throws Exception {
