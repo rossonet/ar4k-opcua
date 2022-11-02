@@ -3,13 +3,14 @@ package org.eclipse.milo.examples;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.milo.examples.server.ExampleServer;
 import org.eclipse.milo.opcua.stack.core.types.structured.AddNodesItem;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.rossonet.opcua.milo.client.Ar4kOpcUaClient;
 import org.rossonet.opcua.milo.client.OpcUaClientConfiguration;
+import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
+import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,16 +19,17 @@ public class ManageNodesTests {
 	public static boolean running = true;
 
 	private static final Logger logger = LoggerFactory.getLogger(ManageNodesTests.class);
-	private ExampleServer server = null;
+	private Ar4kOpcUaServer server = null;
 
-	@BeforeAll
+	@BeforeEach
 	public void runMiloServerExample() throws Exception {
-		server = new ExampleServer();
+		final OpcUaServerConfiguration serverConfiguration = new OpcUaServerConfiguration();
+		server = Ar4kOpcUaServer.getNewServer(serverConfiguration);
 		server.startup();
 		logger.info("server started");
 	}
 
-	@AfterAll
+	@AfterEach
 	public void stopMiloServerExample() throws Exception {
 		if (server != null) {
 			server.shutdown();
@@ -41,6 +43,7 @@ public class ManageNodesTests {
 		final Ar4kOpcUaClient client = Ar4kOpcUaClient.getNewClient(clientConfiguration);
 		client.connect();
 		final List<AddNodesItem> nodes = new ArrayList<>();
+		Thread.sleep(60000);
 	}
 
 }
