@@ -518,7 +518,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		}
 	}
 
-	private void addShutdownMethod(final UaFolderNode folderNode) {
+	private void addShutdownMethod() {
 		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
 				.setNodeId(newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/shutdown()"))
 				.setBrowseName(newQualifiedName("shutdown()")).setDisplayName(new LocalizedText(null, "shutdown()"))
@@ -588,6 +588,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 	private void createAndAddNodes() {
 		// Create a "HelloWorld" folder and add it to the node manager
 		final NodeId folderNodeId = newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId());
+		final NodeId rulesEngineNodeId = newNodeId("rules-engine");
 
 		final UaFolderNode folderNode = new UaFolderNode(getNodeContext(), folderNodeId,
 				newQualifiedName(opcUaServer.getOpcUaServerConfiguration().getRootBrowseName()),
@@ -596,10 +597,18 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				LocalizedText.english(opcUaServer.getOpcUaServerConfiguration().getRootDescriptionEnglish()));
 		getNodeManager().addNode(folderNode);
 
+		final UaFolderNode rulesEngineNode = new UaFolderNode(getNodeContext(), rulesEngineNodeId,
+				newQualifiedName("rules-engine"), LocalizedText.english("rules-engine"));
+		rulesEngineNode.setDescription(LocalizedText.english("OPC UA Server Rules Engine"));
+		getNodeManager().addNode(rulesEngineNode);
+
 		// Make sure our new folder shows up under the server's Objects folder.
 		folderNode.addReference(new Reference(folderNode.getNodeId(), Identifiers.Organizes,
 				Identifiers.ObjectsFolder.expanded(), false));
-		addShutdownMethod(folderNode);
+		rulesEngineNode.addReference(new Reference(rulesEngineNode.getNodeId(), Identifiers.Organizes,
+				Identifiers.Server.expanded(), false));
+
+		addShutdownMethod();
 		// Add the rest of the nodes
 		if (opcUaServer.getOpcUaServerConfiguration().enableDemoDatas()) {
 			addVariableNodes(folderNode);
