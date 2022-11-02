@@ -10,8 +10,8 @@ buildscript {
   }
 }
 
-description = "library template project"
-group = 'org.rossonet.commons'
+description = "Ar4k wrapper to Milo Opcua library"
+group = 'org.rossonet.opcua.milo'
 version = '0.0.1'
 
 ext {
