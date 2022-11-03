@@ -10,20 +10,20 @@ public class ComponentObject {
 
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(ComponentObject.class);
-	private String id;
-	private String name;
+
 	private String comment;
 	private String description;
-
 	private String displayName;
+	private DigitalTwinModelIdentifier id;
+	private String name;
 
 	private Schema schema;
 
-	ComponentObject(Map<String, Object> component) {
+	ComponentObject(final Map<String, Object> component) {
 		for (final Entry<String, Object> record : component.entrySet()) {
 			switch (record.getKey()) {
 			case "@id":
-				this.id = record.getValue().toString();
+				this.id = DigitalTwinModelIdentifier.fromString(record.getValue().toString());
 				break;
 			case "@type":
 				if (!"Component".equals(record.getValue())) {
@@ -61,7 +61,7 @@ public class ComponentObject {
 		return displayName;
 	}
 
-	public String getId() {
+	public DigitalTwinModelIdentifier getId() {
 		return id;
 	}
 
@@ -71,6 +71,43 @@ public class ComponentObject {
 
 	public Schema getSchema() {
 		return schema;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("Component [");
+		if (name != null) {
+			builder.append("name=");
+			builder.append(name);
+			builder.append(", ");
+		}
+		if (schema != null) {
+			builder.append("schema=");
+			builder.append(schema);
+			builder.append(", ");
+		}
+		if (id != null) {
+			builder.append("id=");
+			builder.append(id);
+			builder.append(", ");
+		}
+		if (comment != null) {
+			builder.append("comment=");
+			builder.append(comment);
+			builder.append(", ");
+		}
+		if (description != null) {
+			builder.append("description=");
+			builder.append(description);
+			builder.append(", ");
+		}
+		if (displayName != null) {
+			builder.append("displayName=");
+			builder.append(displayName);
+		}
+		builder.append("]");
+		return builder.toString();
 	}
 
 }

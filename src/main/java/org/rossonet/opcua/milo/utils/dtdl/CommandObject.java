@@ -10,21 +10,22 @@ public class CommandObject {
 
 	private static final Logger logger = LoggerFactory.getLogger(CommandObject.class);
 
-	private String id;
-	private String name;
+	private String commandType;
+
 	private String comment;
 	private String description;
 	private String displayName;
-	private String commandType;
+	private DigitalTwinModelIdentifier id;
+	private String name;
 	private CommandPayload request;
 	private CommandPayload response;
 
 	@SuppressWarnings("unchecked")
-	CommandObject(Map<String, Object> command) {
+	CommandObject(final Map<String, Object> command) {
 		for (final Entry<String, Object> record : command.entrySet()) {
 			switch (record.getKey()) {
 			case "@id":
-				this.id = record.getValue().toString();
+				this.id = DigitalTwinModelIdentifier.fromString(record.getValue().toString());
 				break;
 			case "name":
 				this.name = record.getValue().toString();
@@ -74,7 +75,7 @@ public class CommandObject {
 		return displayName;
 	}
 
-	public String getId() {
+	public DigitalTwinModelIdentifier getId() {
 		return id;
 	}
 
@@ -88,5 +89,52 @@ public class CommandObject {
 
 	public CommandPayload getResponse() {
 		return response;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("Command [");
+		if (name != null) {
+			builder.append("name=");
+			builder.append(name);
+			builder.append(", ");
+		}
+		if (id != null) {
+			builder.append("id=");
+			builder.append(id);
+			builder.append(", ");
+		}
+		if (comment != null) {
+			builder.append("comment=");
+			builder.append(comment);
+			builder.append(", ");
+		}
+		if (description != null) {
+			builder.append("description=");
+			builder.append(description);
+			builder.append(", ");
+		}
+		if (displayName != null) {
+			builder.append("displayName=");
+			builder.append(displayName);
+			builder.append(", ");
+		}
+		if (commandType != null) {
+			builder.append("commandType=");
+			builder.append(commandType);
+			builder.append(", ");
+		}
+		if (request != null) {
+			builder.append("request=");
+			builder.append(request);
+			builder.append(", ");
+		}
+		if (response != null) {
+			builder.append("response=");
+			builder.append(response);
+		}
+		builder.append("]");
+		return builder.toString();
 	}
 }

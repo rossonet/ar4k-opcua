@@ -13,23 +13,22 @@ public class RelationshipObject {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(RelationshipObject.class);
 
-	private String id;
-	private String name;
 	private String comment;
 	private String description;
+
 	private String displayName;
-	private Schema schema;
-	private boolean writable;
-
+	private DigitalTwinModelIdentifier id;
 	private Integer maxMultiplicity;
-
 	private Integer minMultiplicity;
+	private String name;
+	private final List<PropertyObject> properties = new ArrayList<>();
 
 	private String target;
 
-	private final List<PropertyObject> properties = new ArrayList<>();
+	private boolean writable;
 
-	public RelationshipObject(Map<String, Object> relationship) {
+	@SuppressWarnings("unchecked")
+	public RelationshipObject(final Map<String, Object> relationship) {
 		for (final Entry<String, Object> record : relationship.entrySet()) {
 			switch (record.getKey()) {
 			case "@type":
@@ -38,13 +37,10 @@ public class RelationshipObject {
 				}
 				break;
 			case "@id":
-				this.id = record.getValue().toString();
+				this.id = DigitalTwinModelIdentifier.fromString(record.getValue().toString());
 				break;
 			case "name":
 				this.name = record.getValue().toString();
-				break;
-			case "schema":
-				this.schema = new Schema(record.getValue());
 				break;
 			case "comment":
 				this.comment = record.getValue().toString();
@@ -86,7 +82,7 @@ public class RelationshipObject {
 		return displayName;
 	}
 
-	public String getId() {
+	public DigitalTwinModelIdentifier getId() {
 		return id;
 	}
 
@@ -106,10 +102,6 @@ public class RelationshipObject {
 		return properties;
 	}
 
-	public Schema getSchema() {
-		return schema;
-	}
-
 	public String getTarget() {
 		return target;
 	}
@@ -118,7 +110,62 @@ public class RelationshipObject {
 		return writable;
 	}
 
-	RelationshipObject setProperties(List<Map<String, Object>> props) {
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("Relationship [");
+		if (name != null) {
+			builder.append("name=");
+			builder.append(name);
+			builder.append(", ");
+		}
+		if (id != null) {
+			builder.append("id=");
+			builder.append(id);
+			builder.append(", ");
+		}
+		if (comment != null) {
+			builder.append("comment=");
+			builder.append(comment);
+			builder.append(", ");
+		}
+		if (description != null) {
+			builder.append("description=");
+			builder.append(description);
+			builder.append(", ");
+		}
+		if (displayName != null) {
+			builder.append("displayName=");
+			builder.append(displayName);
+			builder.append(", ");
+		}
+		if (maxMultiplicity != null) {
+			builder.append("maxMultiplicity=");
+			builder.append(maxMultiplicity);
+			builder.append(", ");
+		}
+		if (minMultiplicity != null) {
+			builder.append("minMultiplicity=");
+			builder.append(minMultiplicity);
+			builder.append(", ");
+		}
+		if (properties != null) {
+			builder.append("properties=");
+			builder.append(properties);
+			builder.append(", ");
+		}
+		if (target != null) {
+			builder.append("target=");
+			builder.append(target);
+			builder.append(", ");
+		}
+		builder.append("writable=");
+		builder.append(writable);
+		builder.append("]");
+		return builder.toString();
+	}
+
+	RelationshipObject setProperties(final List<Map<String, Object>> props) {
 		if (props instanceof List) {
 			for (final Map<String, Object> property : props) {
 				properties.add(new PropertyObject(property));
