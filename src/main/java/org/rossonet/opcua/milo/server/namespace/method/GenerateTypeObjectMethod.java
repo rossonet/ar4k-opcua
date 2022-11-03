@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class GenerateTypeObjectMethod extends AbstractMethodInvocationHandler {
 
-	private static final String DTDLV2_MD_LINK = "https://github.com/Azure/opendigitaltwins-dtdl/blob/master/DTDL/v2/dtdlv2.md";
+	private static final String DTDLV2_MD_LINK = "https://github.com/rossonet/ar4k-opcua/blob/main/dtdlv2.md";
 
 	public static final Argument DTDL_JSON_DESCRIPTION = new Argument("dtdlJson", Identifiers.String, ValueRanks.Scalar,
 			null,
