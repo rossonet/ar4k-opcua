@@ -20,7 +20,7 @@ import org.eclipse.milo.opcua.stack.core.serialization.UaStructure;
 import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCodec;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
-import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
+import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -56,11 +56,12 @@ public class CustomStructType implements UaStructure {
 		}
 	}
 
-	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId
-			.parse(String.format("nsu=%s;s=%s", ManagedNamespace.NAMESPACE_URI, "DataType.CustomStructType"));
+	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomStructType"));
 
-	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(
-			String.format("nsu=%s;s=%s", ManagedNamespace.NAMESPACE_URI, "DataType.CustomStructType.BinaryEncoding"));
+	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomStructType.BinaryEncoding"));
+
 	private final String foo;
 	private final UInteger bar;
 

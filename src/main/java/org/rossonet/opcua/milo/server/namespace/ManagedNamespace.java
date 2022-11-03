@@ -25,6 +25,8 @@ import org.eclipse.milo.opcua.sdk.core.Reference;
 import org.eclipse.milo.opcua.sdk.core.ValueRank;
 import org.eclipse.milo.opcua.sdk.core.ValueRanks;
 import org.eclipse.milo.opcua.sdk.server.Lifecycle;
+import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
+import org.eclipse.milo.opcua.sdk.server.UaNodeManager;
 import org.eclipse.milo.opcua.sdk.server.api.DataItem;
 import org.eclipse.milo.opcua.sdk.server.api.ManagedNamespaceWithLifecycle;
 import org.eclipse.milo.opcua.sdk.server.api.MonitoredItem;
@@ -36,6 +38,7 @@ import org.eclipse.milo.opcua.sdk.server.nodes.UaDataTypeNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaFolderNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaMethodNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
+import org.eclipse.milo.opcua.sdk.server.nodes.UaNodeContext;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaObjectNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaObjectTypeNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaVariableNode;
@@ -66,6 +69,7 @@ import org.eclipse.milo.opcua.stack.core.types.structured.StructureDescription;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureField;
 import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
 import org.rossonet.opcua.milo.server.namespace.method.GenerateEventMethod;
+import org.rossonet.opcua.milo.server.namespace.method.GenerateTypeObjectMethod;
 import org.rossonet.opcua.milo.server.namespace.method.ShutdownMethod;
 import org.rossonet.opcua.milo.server.namespace.method.SqrtMethod;
 import org.rossonet.opcua.milo.server.namespace.type.CustomEnumType;
@@ -75,8 +79,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
-
-	public static final String NAMESPACE_URI = "urn:eclipse:milo:hello-world";
 
 	private static final Logger logger = LoggerFactory.getLogger(ManagedNamespace.class);
 
@@ -121,6 +123,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 			{ "UtcTime", Identifiers.UtcTime, new Variant(DateTime.now()) }, };
 
 	private final DataTypeDictionaryManager dictionaryManager;
+
 	private volatile Thread eventThread;
 
 	private volatile boolean keepPostingEvents = true;
@@ -132,10 +135,11 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 	private final SubscriptionModel subscriptionModel;
 
 	public ManagedNamespace(final Ar4kOpcUaServer opcUaServer) {
-		super(opcUaServer.getServer(), NAMESPACE_URI);
+		super(opcUaServer.getServer(), opcUaServer.getOpcUaServerConfiguration().getNameSpaceUri());
 		this.opcUaServer = opcUaServer;
 		subscriptionModel = new SubscriptionModel(opcUaServer.getServer(), this);
-		dictionaryManager = new DataTypeDictionaryManager(getNodeContext(), NAMESPACE_URI);
+		dictionaryManager = new DataTypeDictionaryManager(getNodeContext(),
+				opcUaServer.getOpcUaServerConfiguration().getNameSpaceUri());
 		getLifecycleManager().addLifecycle(dictionaryManager);
 		getLifecycleManager().addLifecycle(subscriptionModel);
 		getLifecycleManager().addStartupTask(this::createAndAddNodes);
@@ -156,26 +160,6 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				startBogusEventNotifier();
 			}
 		});
-	}
-
-	@Override
-	public void onDataItemsCreated(final List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsCreated(dataItems);
-	}
-
-	@Override
-	public void onDataItemsDeleted(final List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsDeleted(dataItems);
-	}
-
-	@Override
-	public void onDataItemsModified(final List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsModified(dataItems);
-	}
-
-	@Override
-	public void onMonitoringModeChanged(final List<MonitoredItem> monitoredItems) {
-		subscriptionModel.onMonitoringModeChanged(monitoredItems);
 	}
 
 	private void addAdminReadableNodes(final UaFolderNode rootNode) {
@@ -491,6 +475,25 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				folderNode.getNodeId().expanded(), false));
 	}
 
+	private void addGenerateFromDtdlMethod() {
+		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
+				.setNodeId(
+						newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/generateTypeFromDtdl"))
+				.setBrowseName(newQualifiedName("generateTypeFromDtdl"))
+				.setDisplayName(new LocalizedText(null, "generateTypeFromDtdl"))
+				.setDescription(LocalizedText.english("Generate type model from dtdl in json format.")).build();
+
+		final GenerateTypeObjectMethod generateTypeMethod = new GenerateTypeObjectMethod(this, methodNode);
+		methodNode.setInputArguments(generateTypeMethod.getInputArguments());
+		methodNode.setOutputArguments(generateTypeMethod.getOutputArguments());
+		methodNode.setInvocationHandler(generateTypeMethod);
+
+		getNodeManager().addNode(methodNode);
+
+		methodNode.addReference(
+				new Reference(methodNode.getNodeId(), Identifiers.HasComponent, Identifiers.Server.expanded(), false));
+	}
+
 	private void addScalarNodes(final UaFolderNode rootNode) {
 		final UaFolderNode scalarTypesFolder = new UaFolderNode(getNodeContext(), newNodeId("HelloWorld/ScalarTypes"),
 				newQualifiedName("ScalarTypes"), LocalizedText.english("ScalarTypes"));
@@ -520,8 +523,8 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 	private void addShutdownMethod() {
 		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
-				.setNodeId(newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/shutdown()"))
-				.setBrowseName(newQualifiedName("shutdown()")).setDisplayName(new LocalizedText(null, "shutdown()"))
+				.setNodeId(newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/shutdown"))
+				.setBrowseName(newQualifiedName("shutdown")).setDisplayName(new LocalizedText(null, "shutdown"))
 				.setDescription(LocalizedText.english("Shutdown the opcua server.")).build();
 
 		final ShutdownMethod shutdownMethod = new ShutdownMethod(opcUaServer, methodNode);
@@ -609,6 +612,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 				Identifiers.Server.expanded(), false));
 
 		addShutdownMethod();
+		addGenerateFromDtdlMethod();
 		// Add the rest of the nodes
 		if (opcUaServer.getOpcUaServerConfiguration().enableDemoDatas()) {
 			addVariableNodes(folderNode);
@@ -640,6 +644,58 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 			addCustomObjectTypeAndInstance(folderNode);
 		}
+	}
+
+	public NodeId generateNodeId(String id) {
+		return super.newNodeId(id);
+	}
+
+	public QualifiedName generateQualifiedName(String id) {
+		return super.newQualifiedName(id);
+	}
+
+	public DataTypeDictionaryManager getDictionaryManager() {
+		return dictionaryManager;
+	}
+
+	@Override
+	public UaNodeContext getNodeContext() {
+		return super.getNodeContext();
+	}
+
+	@Override
+	public NodeFactory getNodeFactory() {
+		return super.getNodeFactory();
+	}
+
+	@Override
+	public UaNodeManager getNodeManager() {
+		return super.getNodeManager();
+	}
+
+	@Override
+	public OpcUaServer getServer() {
+		return super.getServer();
+	}
+
+	@Override
+	public void onDataItemsCreated(final List<DataItem> dataItems) {
+		subscriptionModel.onDataItemsCreated(dataItems);
+	}
+
+	@Override
+	public void onDataItemsDeleted(final List<DataItem> dataItems) {
+		subscriptionModel.onDataItemsDeleted(dataItems);
+	}
+
+	@Override
+	public void onDataItemsModified(final List<DataItem> dataItems) {
+		subscriptionModel.onDataItemsModified(dataItems);
+	}
+
+	@Override
+	public void onMonitoringModeChanged(final List<MonitoredItem> monitoredItems) {
+		subscriptionModel.onMonitoringModeChanged(monitoredItems);
 	}
 
 	private void registerCustomEnumType() throws Exception {

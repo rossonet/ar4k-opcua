@@ -29,6 +29,8 @@ import com.google.common.collect.Sets;
 
 public class OpcUaServerConfiguration implements Serializable {
 
+	public static final String DEFAULT_URN_ROSSONET_OPCUA_SERVER = "urn:rossonet:opcua:server";
+
 	public static final String DEFAULT_DISCOVERY_PATH = "/milo/discovery";
 
 	public static final int DEFAULT_TCP_BIND_PORT = 12686;
@@ -75,6 +77,14 @@ public class OpcUaServerConfiguration implements Serializable {
 		return "0.0.0.0";
 	}
 
+	private String getCommonName() {
+		return "Eclipse Milo Example Server";
+	}
+
+	private String getCountryCode() {
+		return "US";
+	}
+
 	public String getDiscoveryPath() {
 		// TODO Auto-generated method stub
 		return DEFAULT_DISCOVERY_PATH;
@@ -88,6 +98,23 @@ public class OpcUaServerConfiguration implements Serializable {
 	public int getHttpsBindPort() {
 		// TODO Auto-generated method stub
 		return DEFAULT_HTTPS_BIND_PORT;
+	}
+
+	private String getLocalityName() {
+		return "Folsom";
+	}
+
+	public String getNameSpaceUri() {
+		// TODO Auto-generated method stub
+		return DEFAULT_URN_ROSSONET_OPCUA_SERVER;
+	}
+
+	private String getOrganization() {
+		return "digitalpetri";
+	}
+
+	private String getOrganizationalUnit() {
+		return "dev";
 	}
 
 	public String getPath() {
@@ -120,8 +147,20 @@ public class OpcUaServerConfiguration implements Serializable {
 		return "server-data";
 	}
 
+	X509Certificate getServerCertificate() {
+		return serverCertificate;
+	}
+
 	public X509Certificate[] getServerCertificateChain() {
 		return serverCertificateChain;
+	}
+
+	KeyPair getServerKeyPair() {
+		return serverKeyPair;
+	}
+
+	private String getStateName() {
+		return "CA";
 	}
 
 	public int getTcpBindPort() {
@@ -129,26 +168,18 @@ public class OpcUaServerConfiguration implements Serializable {
 		return DEFAULT_TCP_BIND_PORT;
 	}
 
-	X509Certificate getServerCertificate() {
-		return serverCertificate;
-	}
-
-	KeyPair getServerKeyPair() {
-		return serverKeyPair;
-	}
-
 	void load(final Path baseDir) throws Exception {
 		final KeyStore keyStore = KeyStore.getInstance("PKCS12");
-		final File serverKeyStore = baseDir.resolve("example-server" + UUID.randomUUID().toString() + ".pfx").toFile();
+		final File serverKeyStore = baseDir.resolve("opcua-server" + UUID.randomUUID().toString() + ".pfx").toFile();
 		logger.info("Loading KeyStore at {}", serverKeyStore);
 		if (!serverKeyStore.exists()) {
 			keyStore.load(null, PASSWORD);
 			final KeyPair keyPair = SelfSignedCertificateGenerator.generateRsaKeyPair(2048);
-			final String applicationUri = "urn:eclipse:milo:examples:server:" + UUID.randomUUID();
+			final String applicationUri = getNameSpaceUri();
 			final SelfSignedCertificateBuilder builder = new SelfSignedCertificateBuilder(keyPair)
-					.setCommonName("Eclipse Milo Example Server").setOrganization("digitalpetri")
-					.setOrganizationalUnit("dev").setLocalityName("Folsom").setStateName("CA").setCountryCode("US")
-					.setApplicationUri(applicationUri);
+					.setCommonName(getCommonName()).setOrganization(getOrganization())
+					.setOrganizationalUnit(getOrganizationalUnit()).setLocalityName(getLocalityName())
+					.setStateName(getStateName()).setCountryCode(getCountryCode()).setApplicationUri(applicationUri);
 			// Get as many hostnames and IP addresses as we can listed in the certificate.
 			final Set<String> hostnames = Sets.union(Sets.newHashSet(HostnameUtil.getHostname()),
 					HostnameUtil.getHostnames("0.0.0.0", false));

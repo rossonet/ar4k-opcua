@@ -22,7 +22,7 @@ import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCod
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
 import org.eclipse.milo.opcua.stack.core.types.structured.Union;
-import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
+import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
 
 public class CustomUnionType extends Union implements UaStructure {
 
@@ -76,10 +76,11 @@ public class CustomUnionType extends Union implements UaStructure {
 		Null, Foo, Bar
 	}
 
-	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId
-			.parse(String.format("nsu=%s;s=%s", ManagedNamespace.NAMESPACE_URI, "DataType.CustomUnionType"));
-	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(
-			String.format("nsu=%s;s=%s", ManagedNamespace.NAMESPACE_URI, "DataType.CustomUnionType.BinaryEncoding"));
+	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType"));
+
+	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType.BinaryEncoding"));
 
 	public static CustomUnionType ofBar(String value) {
 		return new CustomUnionType(Type.Bar, value);

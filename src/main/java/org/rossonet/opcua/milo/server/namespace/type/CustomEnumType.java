@@ -16,7 +16,7 @@ import org.eclipse.milo.opcua.stack.core.serialization.UaEncoder;
 import org.eclipse.milo.opcua.stack.core.serialization.UaEnumeration;
 import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCodec;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
-import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
+import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
 
 public enum CustomEnumType implements UaEnumeration {
 
@@ -39,8 +39,8 @@ public enum CustomEnumType implements UaEnumeration {
 		}
 	}
 
-	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId
-			.parse(String.format("nsu=%s;s=%s", ManagedNamespace.NAMESPACE_URI, "DataType.CustomEnumType"));
+	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomEnumType"));
 
 	public static CustomEnumType from(final int value) {
 		switch (value) {
