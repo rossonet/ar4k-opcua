@@ -42,9 +42,11 @@ dependencies {
   api group: 'org.eclipse.milo', name: 'dictionary-manager', version: '0.6.8'
   api group: 'org.eclipse.milo', name: 'dictionary-reader', version: '0.6.8'
   api group: 'org.eclipse.milo', name: 'bsd-parser-core', version: '0.3.8'
-
+  // rules engine
   api group: 'org.jeasy', name: 'easy-rules', version: '4.1.0'
-  
+  // digital twins definition in json-ld
+  implementation group: 'com.github.jsonld-java', name: 'jsonld-java', version: '0.13.4'
+
   implementation 'org.slf4j:slf4j-api:2.0.3'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
   testImplementation group: 'com.ginsberg', name: 'junit5-system-exit', version: '1.1.2'

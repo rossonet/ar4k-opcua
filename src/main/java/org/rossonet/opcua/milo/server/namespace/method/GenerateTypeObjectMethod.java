@@ -12,17 +12,14 @@ package org.rossonet.opcua.milo.server.namespace.method;
 
 import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.uint;
 
-import org.eclipse.milo.opcua.sdk.core.AccessLevel;
-import org.eclipse.milo.opcua.sdk.core.Reference;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.eclipse.milo.opcua.sdk.core.ValueRanks;
 import org.eclipse.milo.opcua.sdk.server.api.methods.AbstractMethodInvocationHandler;
-import org.eclipse.milo.opcua.sdk.server.nodes.UaFolderNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaMethodNode;
-import org.eclipse.milo.opcua.sdk.server.nodes.UaVariableNode;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
 import org.eclipse.milo.opcua.stack.core.UaException;
-import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
-import org.eclipse.milo.opcua.stack.core.types.builtin.ExtensionObject;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.QualifiedName;
@@ -33,11 +30,12 @@ import org.eclipse.milo.opcua.stack.core.types.structured.Argument;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureDefinition;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureDescription;
 import org.eclipse.milo.opcua.stack.core.types.structured.StructureField;
-import org.json.JSONObject;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
 import org.rossonet.opcua.milo.server.namespace.type.CustomUnionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.jsonldjava.utils.JsonUtils;
 
 public class GenerateTypeObjectMethod extends AbstractMethodInvocationHandler {
 
@@ -56,33 +54,6 @@ public class GenerateTypeObjectMethod extends AbstractMethodInvocationHandler {
 		this.managedNamespace = managedNamespace;
 	}
 
-	private void addCustomUnionTypeVariable(final UaFolderNode rootFolder) throws Exception {
-		final NodeId dataTypeId = CustomUnionType.TYPE_ID
-				.toNodeIdOrThrow(managedNamespace.getServer().getNamespaceTable());
-
-		final NodeId binaryEncodingId = CustomUnionType.BINARY_ENCODING_ID
-				.toNodeIdOrThrow(managedNamespace.getServer().getNamespaceTable());
-
-		final UaVariableNode customUnionTypeVariable = UaVariableNode.builder(managedNamespace.getNodeContext())
-				.setNodeId(managedNamespace.generateNodeId("/CustomUnionTypeVariable"))
-				.setAccessLevel(AccessLevel.READ_WRITE).setUserAccessLevel(AccessLevel.READ_WRITE)
-				.setBrowseName(managedNamespace.generateQualifiedName("CustomUnionTypeVariable"))
-				.setDisplayName(LocalizedText.english("CustomUnionTypeVariable")).setDataType(dataTypeId)
-				.setTypeDefinition(Identifiers.BaseDataVariableType).build();
-
-		final CustomUnionType value = CustomUnionType.ofBar("hello");
-
-		final ExtensionObject xo = ExtensionObject
-				.encodeDefaultBinary(managedNamespace.getServer().getSerializationContext(), value, binaryEncodingId);
-
-		customUnionTypeVariable.setValue(new DataValue(new Variant(xo)));
-
-		managedNamespace.getNodeManager().addNode(customUnionTypeVariable);
-
-		customUnionTypeVariable.addReference(new Reference(customUnionTypeVariable.getNodeId(), Identifiers.Organizes,
-				rootFolder.getNodeId().expanded(), false));
-	}
-
 	@Override
 	public Argument[] getInputArguments() {
 		return new Argument[] { DTDL_JSON_DESCRIPTION };
@@ -95,11 +66,18 @@ public class GenerateTypeObjectMethod extends AbstractMethodInvocationHandler {
 
 	@Override
 	protected Variant[] invoke(InvocationContext invocationContext, Variant[] inputValues) throws UaException {
-		if (inputValues != null) {
-			final String dtdlV2String = (String) inputValues[0].getValue();
-			final JSONObject dtdlV2Json = new JSONObject(dtdlV2String);
-		}
 		try {
+			if (inputValues != null) {
+				final String dtdlV2String = (String) inputValues[0].getValue();
+				final Object data = JsonUtils.fromString(dtdlV2String);
+				if (data instanceof Map) {
+					for (final Entry<String, Object> v : ((Map<String, Object>) data).entrySet()) {
+						logger.info(v.getKey() + " -> " + v.getValue());
+					}
+				} else {
+					logger.info("data is " + data.getClass());
+				}
+			}
 			final NodeId dataTypeId = CustomUnionType.TYPE_ID
 					.toNodeIdOrThrow(managedNamespace.getServer().getNamespaceTable());
 			final NodeId binaryEncodingId = CustomUnionType.BINARY_ENCODING_ID
