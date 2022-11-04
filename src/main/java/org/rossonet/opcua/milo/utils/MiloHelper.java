@@ -16,6 +16,7 @@ import org.eclipse.milo.opcua.stack.core.types.structured.StructureField;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
 import org.rossonet.opcua.milo.server.namespace.type.CustomUnionType;
 import org.rossonet.opcua.milo.utils.dtdl.InterfaceObject;
+import org.rossonet.opcua.trace.ControlTrace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,9 @@ public class MiloHelper {
 				new QualifiedName(managedNamespace.getNamespaceIndex(), "CustomUnionType"), definition);
 		managedNamespace.getDictionaryManager().registerStructureDescription(description, binaryEncodingId);
 		logger.info("added " + dataTypeId.toString() + " with binaryEncoder " + binaryEncodingId.toString());
+
+		// trace per cluster e ripristino configurazione
+		ControlTrace.getInstance().registerGenerateTypeObjectFromDtdl(dtdlV2String);
 	}
 
 	private MiloHelper() {

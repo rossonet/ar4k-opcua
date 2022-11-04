@@ -477,8 +477,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 	private void addGenerateFromDtdlMethod() {
 		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
-				.setNodeId(
-						newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/generateTypeFromDtdl"))
+				.setNodeId(newNodeId("server/generateTypeFromDtdl"))
 				.setBrowseName(newQualifiedName("generateTypeFromDtdl"))
 				.setDisplayName(new LocalizedText(null, "generateTypeFromDtdl"))
 				.setDescription(LocalizedText.english("Generate type model from dtdl in json format.")).build();
@@ -522,8 +521,7 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 	}
 
 	private void addShutdownMethod() {
-		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext())
-				.setNodeId(newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId() + "/shutdown"))
+		final UaMethodNode methodNode = UaMethodNode.builder(getNodeContext()).setNodeId(newNodeId("server/shutdown"))
 				.setBrowseName(newQualifiedName("shutdown")).setDisplayName(new LocalizedText(null, "shutdown"))
 				.setDescription(LocalizedText.english("Shutdown the opcua server.")).build();
 
@@ -589,9 +587,9 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 
 	// TODO revisionare creazione namespace
 	private void createAndAddNodes() {
-		// Create a "HelloWorld" folder and add it to the node manager
 		final NodeId folderNodeId = newNodeId(opcUaServer.getOpcUaServerConfiguration().getRootNodeId());
 		final NodeId rulesEngineNodeId = newNodeId("rules-engine");
+		final NodeId traceNodeId = newNodeId("traces");
 
 		final UaFolderNode folderNode = new UaFolderNode(getNodeContext(), folderNodeId,
 				newQualifiedName(opcUaServer.getOpcUaServerConfiguration().getRootBrowseName()),
@@ -605,11 +603,18 @@ public class ManagedNamespace extends ManagedNamespaceWithLifecycle {
 		rulesEngineNode.setDescription(LocalizedText.english("OPC UA Server Rules Engine"));
 		getNodeManager().addNode(rulesEngineNode);
 
+		final UaFolderNode traceNode = new UaFolderNode(getNodeContext(), traceNodeId, newQualifiedName("traces"),
+				LocalizedText.english("traces"));
+		traceNode.setDescription(LocalizedText.english("Trace of admin events"));
+		getNodeManager().addNode(traceNode);
+
 		// Make sure our new folder shows up under the server's Objects folder.
 		folderNode.addReference(new Reference(folderNode.getNodeId(), Identifiers.Organizes,
 				Identifiers.ObjectsFolder.expanded(), false));
 		rulesEngineNode.addReference(new Reference(rulesEngineNode.getNodeId(), Identifiers.Organizes,
 				Identifiers.Server.expanded(), false));
+		traceNode.addReference(
+				new Reference(traceNode.getNodeId(), Identifiers.Organizes, Identifiers.Server.expanded(), false));
 
 		addShutdownMethod();
 		addGenerateFromDtdlMethod();

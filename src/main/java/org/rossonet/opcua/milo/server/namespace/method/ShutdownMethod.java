@@ -21,6 +21,7 @@ import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener.ShutdownReason;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener.ShutdownReason.ReasonCategory;
+import org.rossonet.opcua.trace.ControlTrace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +60,7 @@ public class ShutdownMethod extends AbstractMethodInvocationHandler {
 				logger.error("invoke shutdown hook", a);
 			}
 		}
+		ControlTrace.getInstance().registerShutdownAction(inputValues[0].toString());
 		return new Variant[0];
 	}
 
