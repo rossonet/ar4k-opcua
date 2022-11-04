@@ -3,6 +3,7 @@ package org.rossonet.opcua.milo.client;
 import java.io.Closeable;
 
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
+import org.rossonet.opcua.milo.client.conf.OpcUaClientConfiguration;
 
 public interface Ar4kOpcUaClient extends Closeable {
 

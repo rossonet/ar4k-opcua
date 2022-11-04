@@ -1,4 +1,4 @@
-package org.rossonet.opcua.milo.server;
+package org.rossonet.opcua.milo.server.storage;
 
 import java.util.ArrayList;
 import java.util.Collections;

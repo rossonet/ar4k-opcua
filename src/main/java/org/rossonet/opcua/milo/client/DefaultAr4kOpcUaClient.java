@@ -14,6 +14,7 @@ import org.eclipse.milo.opcua.stack.client.security.DefaultClientCertificateVali
 import org.eclipse.milo.opcua.stack.core.security.DefaultTrustListManager;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.structured.EndpointDescription;
+import org.rossonet.opcua.milo.client.conf.OpcUaClientConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

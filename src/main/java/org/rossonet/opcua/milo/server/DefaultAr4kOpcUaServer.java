@@ -40,6 +40,7 @@ import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateGenerator;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedHttpsCertificateBuilder;
 import org.eclipse.milo.opcua.stack.server.EndpointConfiguration;
 import org.eclipse.milo.opcua.stack.server.security.DefaultServerCertificateValidator;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 import org.rossonet.opcua.milo.server.listener.AuditListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;

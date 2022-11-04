@@ -22,7 +22,7 @@ import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCod
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
 import org.eclipse.milo.opcua.stack.core.types.structured.Union;
-import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 
 public class CustomUnionType extends Union implements UaStructure {
 

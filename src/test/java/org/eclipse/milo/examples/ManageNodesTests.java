@@ -4,7 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
-import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 import org.rossonet.opcua.milo.server.storage.OnMemoryStorageController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

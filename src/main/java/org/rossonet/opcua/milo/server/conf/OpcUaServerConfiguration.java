@@ -1,4 +1,4 @@
-package org.rossonet.opcua.milo.server;
+package org.rossonet.opcua.milo.server.conf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -163,6 +163,10 @@ public class OpcUaServerConfiguration implements Serializable {
 		return serverCertificateChain;
 	}
 
+	public KeyPair getServerKeyPair() {
+		return serverKeyPair;
+	}
+
 	public String getSoftwareVersion() {
 		// TODO Auto-generated method stub
 		return OpcUaServer.SDK_VERSION;
@@ -199,10 +203,6 @@ public class OpcUaServerConfiguration implements Serializable {
 
 	X509Certificate getServerCertificate() {
 		return serverCertificate;
-	}
-
-	KeyPair getServerKeyPair() {
-		return serverKeyPair;
 	}
 
 	void load(final Path baseDir) throws Exception {

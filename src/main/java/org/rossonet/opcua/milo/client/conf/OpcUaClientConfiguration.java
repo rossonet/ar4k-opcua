@@ -1,4 +1,4 @@
-package org.rossonet.opcua.milo.client;
+package org.rossonet.opcua.milo.client.conf;
 
 import java.io.Serializable;
 

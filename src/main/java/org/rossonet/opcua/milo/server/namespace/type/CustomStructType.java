@@ -20,7 +20,7 @@ import org.eclipse.milo.opcua.stack.core.serialization.UaStructure;
 import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCodec;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
-import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;

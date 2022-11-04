@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.util.Collection;
 
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 import org.rossonet.opcua.milo.server.listener.AuditListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
