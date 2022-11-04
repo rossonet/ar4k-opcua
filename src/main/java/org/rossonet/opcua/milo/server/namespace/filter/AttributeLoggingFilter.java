@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-package org.rossonet.opcua.milo.server.namespace;
+package org.rossonet.opcua.milo.server.namespace.filter;
 
 import java.util.function.Predicate;
 

@@ -19,7 +19,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
 import org.eclipse.milo.opcua.sdk.server.util.HostnameUtil;
+import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateBuilder;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateGenerator;
 import org.slf4j.Logger;
@@ -29,11 +31,11 @@ import com.google.common.collect.Sets;
 
 public class OpcUaServerConfiguration implements Serializable {
 
-	public static final String DEFAULT_URN_ROSSONET_OPCUA_SERVER = "urn:rossonet:opcua:server";
-
 	public static final String DEFAULT_DISCOVERY_PATH = "/milo/discovery";
 
 	public static final int DEFAULT_TCP_BIND_PORT = 12686;
+
+	public static final String DEFAULT_URN_ROSSONET_OPCUA_SERVER = "urn:rossonet:opcua:server";
 
 	private static final int DEFAULT_HTTPS_BIND_PORT = 8443;
 
@@ -72,17 +74,24 @@ public class OpcUaServerConfiguration implements Serializable {
 		return false;
 	}
 
+	public String getApplicationName() {
+		// TODO Auto-generated method stub
+		return "Eclipse Milo OPC UA Example Server";
+	}
+
 	public String getBindAddresses() {
 		// TODO Auto-generated method stub
 		return "0.0.0.0";
 	}
 
-	private String getCommonName() {
-		return "Eclipse Milo Example Server";
+	public DateTime getBuildData() {
+		// TODO Auto-generated method stub
+		return DateTime.now();
 	}
 
-	private String getCountryCode() {
-		return "US";
+	public String getBuildNumber() {
+		// TODO Auto-generated method stub
+		return "007";
 	}
 
 	public String getDiscoveryPath() {
@@ -100,21 +109,14 @@ public class OpcUaServerConfiguration implements Serializable {
 		return DEFAULT_HTTPS_BIND_PORT;
 	}
 
-	private String getLocalityName() {
-		return "Folsom";
+	public String getManufacturerName() {
+		// TODO Auto-generated method stub
+		return "rossonet";
 	}
 
 	public String getNameSpaceUri() {
 		// TODO Auto-generated method stub
 		return DEFAULT_URN_ROSSONET_OPCUA_SERVER;
-	}
-
-	private String getOrganization() {
-		return "digitalpetri";
-	}
-
-	private String getOrganizationalUnit() {
-		return "dev";
 	}
 
 	public String getPath() {
@@ -125,6 +127,16 @@ public class OpcUaServerConfiguration implements Serializable {
 	public File getPkiDir() {
 		// TODO Auto-generated method stub
 		return pkiDir;
+	}
+
+	public String getProductName() {
+		// TODO Auto-generated method stub
+		return "rossonet opcua server";
+	}
+
+	public String getProductUri() {
+		// TODO Auto-generated method stub
+		return "urn:rossonet:milo:ar4k-server";
 	}
 
 	public String getRootBrowseName() {
@@ -147,25 +159,50 @@ public class OpcUaServerConfiguration implements Serializable {
 		return "server-data";
 	}
 
-	X509Certificate getServerCertificate() {
-		return serverCertificate;
-	}
-
 	public X509Certificate[] getServerCertificateChain() {
 		return serverCertificateChain;
 	}
 
-	KeyPair getServerKeyPair() {
-		return serverKeyPair;
+	public String getSoftwareVersion() {
+		// TODO Auto-generated method stub
+		return OpcUaServer.SDK_VERSION;
+	}
+
+	public int getTcpBindPort() {
+		// TODO Auto-generated method stub
+		return DEFAULT_TCP_BIND_PORT;
+	}
+
+	private String getCommonName() {
+		return "Eclipse Milo Example Server";
+	}
+
+	private String getCountryCode() {
+		return "US";
+	}
+
+	private String getLocalityName() {
+		return "Folsom";
+	}
+
+	private String getOrganization() {
+		return "digitalpetri";
+	}
+
+	private String getOrganizationalUnit() {
+		return "dev";
 	}
 
 	private String getStateName() {
 		return "CA";
 	}
 
-	public int getTcpBindPort() {
-		// TODO Auto-generated method stub
-		return DEFAULT_TCP_BIND_PORT;
+	X509Certificate getServerCertificate() {
+		return serverCertificate;
+	}
+
+	KeyPair getServerKeyPair() {
+		return serverKeyPair;
 	}
 
 	void load(final Path baseDir) throws Exception {

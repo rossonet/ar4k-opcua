@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
 import org.rossonet.opcua.milo.server.OpcUaServerConfiguration;
+import org.rossonet.opcua.milo.server.storage.OnMemoryStorageController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,7 @@ public class ManageNodesTests {
 	@BeforeEach
 	public void runMiloServerExample() throws Exception {
 		final OpcUaServerConfiguration serverConfiguration = new OpcUaServerConfiguration();
-		server = Ar4kOpcUaServer.getNewServer(serverConfiguration);
+		server = Ar4kOpcUaServer.getNewServer(serverConfiguration, new OnMemoryStorageController());
 		server.startup();
 		logger.info("server started");
 	}

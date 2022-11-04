@@ -18,17 +18,17 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
 import org.eclipse.milo.opcua.stack.core.types.structured.Argument;
 import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
+import org.rossonet.opcua.milo.server.listener.AuditListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
-import org.rossonet.opcua.milo.server.listener.ShutdownListener.ShutdownReason;
-import org.rossonet.opcua.milo.server.listener.ShutdownListener.ShutdownReason.ReasonCategory;
-import org.rossonet.opcua.trace.ControlTrace;
+import org.rossonet.opcua.milo.server.listener.ShutdownReason;
+import org.rossonet.opcua.milo.server.listener.ShutdownReason.ReasonCategory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ShutdownMethod extends AbstractMethodInvocationHandler {
 
-	public static final Argument REASON = new Argument("shutdown-reason", Identifiers.String, ValueRanks.Scalar, null,
-			new LocalizedText("The reason for the shutdown."));
+	public static final Argument REASON = new Argument("shutdown-reason", Identifiers.ServerStatusType_ShutdownReason,
+			ValueRanks.Scalar, null, new LocalizedText("The reason for the shutdown."));
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	private final Ar4kOpcUaServer server;
@@ -48,19 +48,28 @@ public class ShutdownMethod extends AbstractMethodInvocationHandler {
 		return new Argument[0];
 	}
 
-	@Override
-	protected Variant[] invoke(final InvocationContext invocationContext, final Variant[] inputValues) {
-		logger.info("Invoking shutdown() method of objectId={}", invocationContext.getObjectId());
+	public void notifyListeners(final String reasonText) {
+		final ShutdownReason reason = new ShutdownReason(ReasonCategory.NORMAL_SHUTDOWN, reasonText);
 		for (final ShutdownListener shutdownListener : server.listShutdownHooks()) {
 			try {
-				final ShutdownReason reason = new ShutdownReason(ReasonCategory.NORMAL_SHUTDOWN,
-						inputValues[0].toString());
 				shutdownListener.shutdown(reason);
 			} catch (final Exception a) {
 				logger.error("invoke shutdown hook", a);
 			}
 		}
-		ControlTrace.getInstance().registerShutdownAction(inputValues[0].toString());
+		for (final AuditListener auditListener : server.listAuditHooks()) {
+			try {
+				auditListener.notifyShutdown(reason);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
+	}
+
+	@Override
+	protected Variant[] invoke(final InvocationContext invocationContext, final Variant[] inputValues) {
+		logger.info("Invoking shutdown() method of objectId={}", invocationContext.getObjectId());
+		notifyListeners(inputValues[0].toString());
 		return new Variant[0];
 	}
 

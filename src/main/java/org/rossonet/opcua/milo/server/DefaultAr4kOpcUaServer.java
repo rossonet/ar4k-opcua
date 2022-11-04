@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -30,7 +31,6 @@ import org.eclipse.milo.opcua.stack.core.security.DefaultCertificateManager;
 import org.eclipse.milo.opcua.stack.core.security.DefaultTrustListManager;
 import org.eclipse.milo.opcua.stack.core.security.SecurityPolicy;
 import org.eclipse.milo.opcua.stack.core.transport.TransportProfile;
-import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.MessageSecurityMode;
 import org.eclipse.milo.opcua.stack.core.types.structured.BuildInfo;
@@ -40,8 +40,11 @@ import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateGenerator;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedHttpsCertificateBuilder;
 import org.eclipse.milo.opcua.stack.server.EndpointConfiguration;
 import org.eclipse.milo.opcua.stack.server.security.DefaultServerCertificateValidator;
+import org.rossonet.opcua.milo.server.listener.AuditListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
+import org.rossonet.opcua.milo.server.storage.StorageController;
+import org.rossonet.utils.LogHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,9 +61,12 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 		}
 	}
 
-	static Ar4kOpcUaServer getNewServer(final OpcUaServerConfiguration opcUaServerConfiguration) {
-		return new DefaultAr4kOpcUaServer(opcUaServerConfiguration);
+	static Ar4kOpcUaServer getNewServer(final OpcUaServerConfiguration opcUaServerConfiguration,
+			final StorageController storageController2) {
+		return new DefaultAr4kOpcUaServer(opcUaServerConfiguration, storageController2);
 	}
+
+	private final Set<AuditListener> auditListeners = new HashSet<>();
 
 	private ManagedNamespace namespace = null;
 
@@ -70,8 +76,20 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 
 	private final Set<ShutdownListener> shutdownListeners = new HashSet<>();
 
-	private DefaultAr4kOpcUaServer(final OpcUaServerConfiguration opcUaServerConfiguration) {
+	private CompletableFuture<OpcUaServer> startingFuture;
+
+	private final StorageController storageController;
+
+	private DefaultAr4kOpcUaServer(final OpcUaServerConfiguration opcUaServerConfiguration,
+			final StorageController storageController) {
 		this.opcUaServerConfiguration = opcUaServerConfiguration;
+		this.storageController = storageController;
+	}
+
+	@Override
+	public void addAuditHook(final AuditListener auditListener) {
+		auditListeners.add(auditListener);
+
 	}
 
 	@Override
@@ -100,9 +118,29 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 		return server;
 	}
 
+	public StorageController getStorageController() {
+		return storageController;
+	}
+
+	@Override
+	public boolean isStarted() {
+		return startingFuture.isDone();
+	}
+
+	@Override
+	public Collection<AuditListener> listAuditHooks() {
+		return auditListeners;
+	}
+
 	@Override
 	public Collection<ShutdownListener> listShutdownHooks() {
 		return shutdownListeners;
+	}
+
+	@Override
+	public void removeAuditHook(final AuditListener auditListener) {
+		auditListeners.remove(auditListener);
+
 	}
 
 	@Override
@@ -124,6 +162,16 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	@Override
 	public void startup() throws Exception {
 		createServer();
+	}
+
+	@Override
+	public void waitServerStarted() {
+		try {
+			startingFuture.get();
+		} catch (InterruptedException | ExecutionException e) {
+			logger.error(LogHelper.stackTraceToString(e));
+		}
+
 	}
 
 	private EndpointConfiguration buildHttpsEndpoint(final EndpointConfiguration.Builder base) {
@@ -190,7 +238,6 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 				endpointConfigurations.add(buildHttpsEndpoint(discoveryBuilder));
 			}
 		}
-
 		return endpointConfigurations;
 	}
 
@@ -225,19 +272,21 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 		final Set<EndpointConfiguration> endpointConfigurations = createEndpointConfigurations(certificate);
 		@SuppressWarnings("unchecked")
 		final OpcUaServerConfig serverConfig = OpcUaServerConfig.builder().setApplicationUri(applicationUri)
-				.setApplicationName(LocalizedText.english("Eclipse Milo OPC UA Example Server"))
+				.setApplicationName(LocalizedText.english(opcUaServerConfiguration.getApplicationName()))
 				.setEndpoints(endpointConfigurations)
-				.setBuildInfo(new BuildInfo("urn:eclipse:milo:example-server", "eclipse", "eclipse milo example server",
-						OpcUaServer.SDK_VERSION, "", DateTime.now()))
+				.setBuildInfo(new BuildInfo(opcUaServerConfiguration.getProductUri(),
+						opcUaServerConfiguration.getManufacturerName(), opcUaServerConfiguration.getProductName(),
+						opcUaServerConfiguration.getSoftwareVersion(), opcUaServerConfiguration.getBuildNumber(),
+						opcUaServerConfiguration.getBuildData()))
 				.setCertificateManager(certificateManager).setTrustListManager(trustListManager)
 				.setCertificateValidator(certificateValidator).setHttpsKeyPair(httpsKeyPair)
 				.setHttpsCertificateChain(new X509Certificate[] { httpsCertificate })
 				.setIdentityValidator(new CompositeValidator<>(identityValidator, x509IdentityValidator))
-				.setProductUri("urn:eclipse:milo:example-server").build();
+				.setProductUri(opcUaServerConfiguration.getProductUri()).build();
 		server = new OpcUaServer(serverConfig);
-		namespace = new ManagedNamespace(this);
+		namespace = new ManagedNamespace(this, storageController);
 		namespace.startup();
-		server.startup();
+		startingFuture = server.startup();
 		logger.info("OPCUA server started");
 	}
 

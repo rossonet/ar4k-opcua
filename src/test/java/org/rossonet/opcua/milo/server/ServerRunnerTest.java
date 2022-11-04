@@ -2,6 +2,8 @@ package org.rossonet.opcua.milo.server;
 
 import org.eclipse.milo.examples.RunnerMiloTests;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
+import org.rossonet.opcua.milo.server.listener.ShutdownReason;
+import org.rossonet.opcua.milo.server.storage.OnMemoryStorageController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +16,18 @@ public class ServerRunnerTest {
 
 	private static Ar4kOpcUaServer server = null;
 
+	public static OpcUaServerConfiguration getOpcServerConfiguration() {
+		return opcServerConfiguration;
+	}
+
+	public static Ar4kOpcUaServer getServer() {
+		return server;
+	}
+
+	public static boolean isRunning() {
+		return running;
+	}
+
 	public static void main(final String[] args) throws Exception {
 		logger.info("starting OPCUA server");
 		runMiloServerExample();
@@ -24,9 +38,9 @@ public class ServerRunnerTest {
 		logger.info("OPCUA server shutdown completed!");
 	}
 
-	private static void runMiloServerExample() throws Exception {
+	public static void runMiloServerExample() throws Exception {
 		opcServerConfiguration = new OpcUaServerConfiguration();
-		server = Ar4kOpcUaServer.getNewServer(opcServerConfiguration);
+		server = Ar4kOpcUaServer.getNewServer(opcServerConfiguration, new OnMemoryStorageController());
 		final ShutdownListener shutdownReason = new ShutdownListener() {
 			@Override
 			public void shutdown(final ShutdownReason reason) {
@@ -38,9 +52,16 @@ public class ServerRunnerTest {
 		server.startup();
 	}
 
-	private static void stopMiloServerExample() throws Exception {
+	public static void stopMiloServerExample() throws Exception {
 		if (server != null) {
 			server.shutdown();
 		}
+	}
+
+	public static void waitStarted() throws InterruptedException {
+		if (server != null) {
+			server.waitServerStarted();
+		}
+
 	}
 }

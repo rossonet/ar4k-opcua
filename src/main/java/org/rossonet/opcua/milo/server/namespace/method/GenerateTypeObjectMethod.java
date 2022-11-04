@@ -21,22 +21,22 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
 import org.eclipse.milo.opcua.stack.core.types.structured.Argument;
 import org.rossonet.opcua.milo.server.namespace.ManagedNamespace;
 import org.rossonet.opcua.milo.utils.MiloHelper;
+import org.rossonet.opcua.milo.utils.dtdl.InterfaceObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GenerateTypeObjectMethod extends AbstractMethodInvocationHandler {
+	private static final String _DTDLV2_MD_LINK = "https://github.com/rossonet/ar4k-opcua/blob/main/dtdlv2.md";
 
-	private static final String DTDLV2_MD_LINK = "https://github.com/rossonet/ar4k-opcua/blob/main/dtdlv2.md";
-
-	public static final Argument DTDL_JSON_DESCRIPTION = new Argument("dtdlJson", Identifiers.String, ValueRanks.Scalar,
-			null,
-			new LocalizedText("Digital Twins Definition Language (DTDL) in json format. ( " + DTDLV2_MD_LINK + " )"));
+	private static final Argument DTDL_JSON_DESCRIPTION = new Argument("dtdlJson", Identifiers.String,
+			ValueRanks.Scalar, null,
+			new LocalizedText("Digital Twins Definition Language (DTDL) in json format. ( " + _DTDLV2_MD_LINK + " )"));
 
 	private static final Logger logger = LoggerFactory.getLogger(GenerateTypeObjectMethod.class);
 
 	private final ManagedNamespace managedNamespace;
 
-	public GenerateTypeObjectMethod(ManagedNamespace managedNamespace, UaMethodNode methodNode) {
+	public GenerateTypeObjectMethod(final ManagedNamespace managedNamespace, final UaMethodNode methodNode) {
 		super(methodNode);
 		this.managedNamespace = managedNamespace;
 	}
@@ -52,10 +52,13 @@ public class GenerateTypeObjectMethod extends AbstractMethodInvocationHandler {
 	}
 
 	@Override
-	protected Variant[] invoke(InvocationContext invocationContext, Variant[] inputValues) throws UaException {
+	protected Variant[] invoke(final InvocationContext invocationContext, final Variant[] inputValues)
+			throws UaException {
 		try {
 			final String dtdlV2String = (String) inputValues[0].getValue();
-			MiloHelper.generateTypeObjectFromDtdl(managedNamespace, dtdlV2String);
+			final InterfaceObject templateObject = MiloHelper.generateTypeObjectFromDtdl(managedNamespace,
+					dtdlV2String);
+			// TODO creare oggetto opc e agganciarlo al namespace
 		} catch (final Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new UaException(StatusCode.BAD.getValue(), e.getMessage(), e);
