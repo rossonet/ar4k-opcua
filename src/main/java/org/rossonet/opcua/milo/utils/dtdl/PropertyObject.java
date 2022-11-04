@@ -24,7 +24,7 @@ public class PropertyObject {
 
 	private List<String> types;
 
-	private String unit;
+	private Unit unit;
 
 	private boolean writable;
 
@@ -70,7 +70,7 @@ public class PropertyObject {
 				this.displayName = record.getValue().toString();
 				break;
 			case "unit":
-				this.unit = record.getValue().toString();
+				this.unit = Unit.getUnit(record.getValue().toString());
 				break;
 			case "writable":
 				this.writable = Boolean.valueOf(record.getValue().toString());
@@ -107,7 +107,7 @@ public class PropertyObject {
 		return types;
 	}
 
-	public String getUnit() {
+	public Unit getUnit() {
 		return unit;
 	}
 

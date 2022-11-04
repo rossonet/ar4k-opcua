@@ -2,11 +2,14 @@ package org.rossonet.opcua.milo.dtdl;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 import org.rossonet.opcua.milo.utils.dtdl.InterfaceObject;
+import org.rossonet.opcua.milo.utils.dtdl.Unit;
+import org.rossonet.opcua.milo.utils.dtdl.UnitType;
 
 import com.fasterxml.jackson.core.JsonParseException;
 
@@ -113,6 +116,41 @@ public class DtdlParserTests {
 		assertEquals("lumen", generatedObject.getTelemetries().get(0).getName());
 		assertEquals(true, generatedObject.getProperties().get(0).isWritable());
 		assertEquals(2, generatedObject.getTelemetries().get(0).getTypes().size());
+	}
+
+	@Test
+	public void unitEnumeratorTest() {
+		final Unit u = Unit.getUnit("hour");
+		System.out.println("name -> " + u.name());
+		assertEquals("hour", u.name());
+		System.out.println("unit types -> " + u.getUnitTypes());
+		assertEquals("[TimeUnit]", u.getUnitTypes().toString());
+		for (final UnitType d : u.getUnitTypes()) {
+			System.out.println("semantic type -> " + d.getSemanticType());
+			assertEquals("[TimeSpan]", d.getSemanticType().toString());
+		}
+
+		final Unit u2 = Unit.getUnit("radian");
+		System.out.println("name -> " + u2.name());
+		assertEquals("radian", u2.name());
+		System.out.println("unit types -> " + u2.getUnitTypes());
+		assertEquals("[AngleUnit]", u2.getUnitTypes().toString());
+		for (final UnitType d2 : u2.getUnitTypes()) {
+			System.out.println("semantic type -> " + d2.getSemanticType());
+			assertTrue(d2.getSemanticType().toString().contains("Latitude"));
+			assertTrue(d2.getSemanticType().toString().contains("Longitude"));
+			assertTrue(d2.getSemanticType().toString().contains("Angle"));
+		}
+
+		final Unit u3 = Unit.getUnit("byte");
+		System.out.println("name -> " + u3.name());
+		assertEquals("_byte", u3.name());
+		System.out.println("unit types -> " + u3.getUnitTypes());
+		assertEquals("[DataSizeUnit]", u3.getUnitTypes().toString());
+		for (final UnitType d3 : u3.getUnitTypes()) {
+			System.out.println("semantic type -> " + d3.getSemanticType());
+			assertEquals("[DataSize]", d3.getSemanticType().toString());
+		}
 	}
 
 }

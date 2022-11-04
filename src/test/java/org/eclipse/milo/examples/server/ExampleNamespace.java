@@ -173,7 +173,6 @@ public class ExampleNamespace extends ManagedNamespaceWithLifecycle {
 				.setDataType(Identifiers.String).setTypeDefinition(Identifiers.BaseDataVariableType).build();
 
 		node.setValue(new DataValue(new Variant("shh... don't tell the lusers")));
-
 		node.getFilterChain().addLast(new RestrictedAccessFilter(identity -> {
 			if ("admin".equals(identity)) {
 				return AccessLevel.READ_WRITE;

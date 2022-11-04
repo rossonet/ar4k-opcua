@@ -28,6 +28,4 @@ jobs:
       run: echo $GITHUB_ACTOR
     - name: Build and test with Gradle
       run: ./gradlew test -Dorg.gradle.daemon=false
-      env:
-        NOT_USED: bla bla
 

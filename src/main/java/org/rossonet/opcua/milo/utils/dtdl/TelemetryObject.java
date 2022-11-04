@@ -23,7 +23,7 @@ public class TelemetryObject {
 	private Schema schema;
 	private List<String> types;
 
-	private String unit;
+	private Unit unit;
 
 	@SuppressWarnings("unchecked")
 	public TelemetryObject(final Map<String, Object> telemetry) {
@@ -67,7 +67,7 @@ public class TelemetryObject {
 				this.displayName = record.getValue().toString();
 				break;
 			case "unit":
-				this.unit = record.getValue().toString();
+				this.unit = Unit.getUnit(record.getValue().toString());
 				break;
 
 			}
@@ -102,7 +102,7 @@ public class TelemetryObject {
 		return types;
 	}
 
-	public String getUnit() {
+	public Unit getUnit() {
 		return unit;
 	}
 

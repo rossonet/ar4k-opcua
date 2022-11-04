@@ -1,5 +1,9 @@
 package org.rossonet.opcua.milo.utils.dtdl;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 public enum UnitType {
 	AccelerationUnit(new Unit[] { Unit.metrePerSecondSquared, Unit.centimetrePerSecondSquared, Unit.gForce }),
 	AngleUnit(new Unit[] { Unit.radian, Unit.degreeOfArc, Unit.minuteOfArc, Unit.secondOfArc, Unit.turn }),
@@ -54,8 +58,18 @@ public enum UnitType {
 
 	private Unit[] units;
 
-	UnitType(Unit[] units) {
+	private UnitType(Unit[] units) {
 		this.units = units;
+	}
+
+	public Collection<SemanticType> getSemanticType() {
+		final Set<SemanticType> result = new HashSet<>();
+		for (final SemanticType s : SemanticType.values()) {
+			if (s.getUnitType().equals(this)) {
+				result.add(s);
+			}
+		}
+		return result;
 	}
 
 	public Unit[] getUnits() {

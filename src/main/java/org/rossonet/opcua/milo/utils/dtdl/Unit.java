@@ -1,5 +1,11 @@
 package org.rossonet.opcua.milo.utils.dtdl;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.google.common.collect.Lists;
+
 public enum Unit {
 	metrePerSecondSquared, centimetrePerSecondSquared, gForce, radianPerSecondSquared, radianPerSecond, degreePerSecond,
 	revolutionPerSecond, revolutionPerMinute, squareMetre, squareCentimetre, squareMillimetre, squareKilometre, hectare,
@@ -20,4 +26,19 @@ public enum Unit {
 	kilometrePerSecond, metrePerHour, kilometrePerHour, milePerHour, milePerSecond, knot, volt, millivolt, microvolt,
 	kilovolt, megavolt, cubicMetre, cubicCentimetre, litre, millilitre, cubicFoot, cubicInch, fluidOunce, gallon,
 	litrePerSecond, millilitrePerSecond, litrePerHour, millilitrePerHour, radian, degreeOfArc, minuteOfArc;
+
+	public static Unit getUnit(String value) {
+		final String checkValue = (value.equals("byte") ? "_byte" : value);
+		return Unit.valueOf(checkValue);
+	}
+
+	public Collection<UnitType> getUnitTypes() {
+		final Set<UnitType> result = new HashSet<>();
+		for (final UnitType u : UnitType.values()) {
+			if (Lists.newArrayList(u.getUnits()).contains(this)) {
+				result.add(u);
+			}
+		}
+		return result;
+	}
 }
