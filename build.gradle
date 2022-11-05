@@ -45,8 +45,8 @@ dependencies {
   // rules engine
   api group: 'org.jeasy', name: 'easy-rules-core', version: '4.1.0'
   api group: 'org.jeasy', name: 'easy-rules-mvel', version: '4.1.0'
-  api group: 'org.jeasy', name: 'easy-rules-spel', version: '4.1.0'
-  api group: 'org.jeasy', name: 'easy-rules-jexl', version: '4.1.0'
+//  api group: 'org.jeasy', name: 'easy-rules-spel', version: '4.1.0'
+//  api group: 'org.jeasy', name: 'easy-rules-jexl', version: '4.1.0'
   
   // digital twins definition in json-ld
   api group: 'com.github.jsonld-java', name: 'jsonld-java', version: '0.13.4'
