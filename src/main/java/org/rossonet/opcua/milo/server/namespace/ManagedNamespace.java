@@ -41,12 +41,15 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UShort;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.TimestampsToReturn;
 import org.eclipse.milo.opcua.stack.core.types.structured.AddNodesItem;
 import org.eclipse.milo.opcua.stack.core.types.structured.AddReferencesItem;
+import org.eclipse.milo.opcua.stack.core.types.structured.CallMethodRequest;
 import org.eclipse.milo.opcua.stack.core.types.structured.DeleteNodesItem;
 import org.eclipse.milo.opcua.stack.core.types.structured.DeleteReferencesItem;
 import org.eclipse.milo.opcua.stack.core.types.structured.HistoryReadDetails;
 import org.eclipse.milo.opcua.stack.core.types.structured.HistoryReadValueId;
 import org.eclipse.milo.opcua.stack.core.types.structured.HistoryUpdateDetails;
 import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
+import org.eclipse.milo.opcua.stack.core.types.structured.ViewDescription;
+import org.eclipse.milo.opcua.stack.core.types.structured.WriteValue;
 import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
 import org.rossonet.opcua.milo.server.listener.AuditListener;
 import org.rossonet.opcua.milo.server.namespace.method.GenerateTypeObjectMethod;
@@ -63,12 +66,19 @@ import org.slf4j.LoggerFactory;
 public class ManagedNamespace extends ManagedAddressSpaceFragment implements Namespace {
 
 	private static final Logger logger = LoggerFactory.getLogger(ManagedNamespace.class);
+
 	private final DataTypeDictionaryManager dictionaryManager;
+
 	private volatile Thread eventThread;
+
 	private final AddressSpaceFilter filter;
+
 	private volatile boolean keepPostingEvents = true;
+
 	private final LifecycleManager lifecycleManager = new LifecycleManager();
+
 	private final UShort namespaceIndex;
+
 	private final String namespaceUri;
 	private final RulesEngine rulesEngine;
 	private final StorageController storageController;
@@ -76,8 +86,7 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	private final Ar4kOpcUaServer wrapperOpcUaServer;
 
 	public ManagedNamespace(final Ar4kOpcUaServer opcUaServer, final StorageController storageController) {
-		super(opcUaServer.getServer(),
-				new StorageNodeManager(storageController.getNodeMap(), storageController.getReferenceMap()));
+		super(opcUaServer.getServer(), new StorageNodeManager(storageController));
 		this.storageController = storageController;
 		this.namespaceUri = opcUaServer.getOpcUaServerConfiguration().getNameSpaceUri();
 		this.namespaceIndex = opcUaServer.getServer().getNamespaceTable().addUri(namespaceUri);
@@ -146,6 +155,16 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	}
 
 	@Override
+	public void browse(final BrowseContext context, final ViewDescription viewDescription, final NodeId nodeId) {
+		super.browse(context, viewDescription, nodeId);
+	}
+
+	@Override
+	public void call(final CallContext context, final List<CallMethodRequest> requests) {
+		super.call(context, requests);
+	}
+
+	@Override
 	public void deleteNodes(final DeleteNodesContext context, final List<DeleteNodesItem> nodesToDelete) {
 		super.deleteNodes(context, nodesToDelete);
 	}
@@ -188,6 +207,11 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	@Override
 	public UaNodeManager getNodeManager() {
 		return super.getNodeManager();
+	}
+
+	@Override
+	public void getReferences(final BrowseContext context, final ViewDescription viewDescription, final NodeId nodeId) {
+		super.getReferences(context, viewDescription, nodeId);
 	}
 
 	@Override
@@ -364,6 +388,17 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 		}
 	}
 
+	@Override
+	public void read(final ReadContext context, final Double maxAge, final TimestampsToReturn timestamps,
+			final List<ReadValueId> readValueIds) {
+		super.read(context, maxAge, timestamps, readValueIds);
+	}
+
+	@Override
+	public void registerNodes(final RegisterNodesContext context, final List<NodeId> nodeIds) {
+		super.registerNodes(context, nodeIds);
+	}
+
 	public final void shutdown() {
 		lifecycleManager.shutdown();
 	}
@@ -392,6 +427,16 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 		}
 		builder.append("]");
 		return builder.toString();
+	}
+
+	@Override
+	public void unregisterNodes(final UnregisterNodesContext context, final List<NodeId> nodeIds) {
+		super.unregisterNodes(context, nodeIds);
+	}
+
+	@Override
+	public void write(final WriteContext context, final List<WriteValue> writeValues) {
+		super.write(context, writeValues);
 	}
 
 	private void addGenerateFromDtdlMethod() {

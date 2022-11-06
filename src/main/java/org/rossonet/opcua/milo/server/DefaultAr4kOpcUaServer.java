@@ -63,8 +63,8 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	}
 
 	static Ar4kOpcUaServer getNewServer(final OpcUaServerConfiguration opcUaServerConfiguration,
-			final StorageController storageController2) {
-		return new DefaultAr4kOpcUaServer(opcUaServerConfiguration, storageController2);
+			final StorageController storageController) {
+		return new DefaultAr4kOpcUaServer(opcUaServerConfiguration, storageController);
 	}
 
 	private final Set<AuditListener> auditListeners = new HashSet<>();
