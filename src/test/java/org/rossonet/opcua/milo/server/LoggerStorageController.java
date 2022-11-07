@@ -51,9 +51,9 @@ public class LoggerStorageController extends OnMemoryStorageController {
 	}
 
 	@Override
-	public boolean equals(final Object obj) {
-		log(obj.toString());
-		return super.equals(obj);
+	public void createClass() {
+		log(null);
+		super.createClass();
 	}
 
 	@Override
@@ -102,12 +102,6 @@ public class LoggerStorageController extends OnMemoryStorageController {
 	public List<Reference> getReferences(final NodeId nodeId, final Predicate<Reference> filter) {
 		log(nodeId.toString());
 		return super.getReferences(nodeId, filter);
-	}
-
-	@Override
-	public void init() {
-		log(null);
-		super.init();
 	}
 
 	public void log(final String parameter) {

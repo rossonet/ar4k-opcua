@@ -29,6 +29,8 @@ public interface StorageController extends Lifecycle {
 
 	boolean containsNode(NodeId nodeId);
 
+	void createClass();
+
 	Optional<UaNode> getNode(ExpandedNodeId nodeId, NamespaceTable namespaceTable);
 
 	Optional<UaNode> getNode(NodeId nodeId);
@@ -44,8 +46,6 @@ public interface StorageController extends Lifecycle {
 	List<Reference> getReferences(NodeId nodeId);
 
 	List<Reference> getReferences(NodeId nodeId, Predicate<Reference> filter);
-
-	void init();
 
 	Optional<UaNode> removeNode(ExpandedNodeId nodeId, NamespaceTable namespaceTable);
 

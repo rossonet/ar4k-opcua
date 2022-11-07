@@ -63,6 +63,12 @@ public class OnMemoryStorageController implements StorageController {
 	}
 
 	@Override
+	public void createClass() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	public Optional<UaNode> getNode(final ExpandedNodeId nodeId, final NamespaceTable namespaceTable) {
 		return nodeId.toNodeId(namespaceTable).flatMap(this::getNode);
 	}
@@ -106,12 +112,6 @@ public class OnMemoryStorageController implements StorageController {
 	@Override
 	public List<Reference> getReferences(final NodeId nodeId, final Predicate<Reference> filter) {
 		return getReferences(nodeId).stream().filter(filter).collect(Collectors.toList());
-	}
-
-	@Override
-	public void init() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override

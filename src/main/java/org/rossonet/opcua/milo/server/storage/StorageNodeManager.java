@@ -28,7 +28,7 @@ public class StorageNodeManager extends UaNodeManager {
 	public StorageNodeManager(final Ar4kOpcUaServer opcUaServer, final StorageController storageController) {
 		this.storageController = storageController;
 		this.opcUaServer = opcUaServer;
-		storageController.init();
+		storageController.createClass();
 	}
 
 	@Override
