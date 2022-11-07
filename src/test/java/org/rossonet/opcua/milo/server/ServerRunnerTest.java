@@ -1,6 +1,5 @@
 package org.rossonet.opcua.milo.server;
 
-import org.eclipse.milo.examples.RunnerMiloTests;
 import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownReason;
@@ -12,7 +11,7 @@ public class ServerRunnerTest {
 
 	public static boolean running = true;
 
-	private static final Logger logger = LoggerFactory.getLogger(RunnerMiloTests.class);
+	private static final Logger logger = LoggerFactory.getLogger(ServerRunnerTest.class);
 	private static OpcUaServerConfiguration opcServerConfiguration;
 
 	private static Ar4kOpcUaServer server = null;
