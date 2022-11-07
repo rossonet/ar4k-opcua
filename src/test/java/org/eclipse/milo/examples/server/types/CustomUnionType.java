@@ -10,7 +10,8 @@
 
 package org.eclipse.milo.examples.server.types;
 
-import org.eclipse.milo.examples.server.ExampleNamespace;
+import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.uint;
+
 import org.eclipse.milo.opcua.stack.core.StatusCodes;
 import org.eclipse.milo.opcua.stack.core.UaSerializationException;
 import org.eclipse.milo.opcua.stack.core.serialization.SerializationContext;
@@ -21,131 +22,120 @@ import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCod
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
 import org.eclipse.milo.opcua.stack.core.types.structured.Union;
-
-import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.uint;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 
 public class CustomUnionType extends Union implements UaStructure {
 
-    public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format(
-        "nsu=%s;s=%s",
-        ExampleNamespace.NAMESPACE_URI,
-        "DataType.CustomUnionType"
-    ));
+	public static class Codec extends GenericDataTypeCodec<CustomUnionType> {
+		@Override
+		public CustomUnionType decode(final SerializationContext context, final UaDecoder decoder) {
+			final UInteger switchValue = decoder.readUInt32("SwitchValue");
+			switch (switchValue.intValue()) {
+			case 0:
+				return CustomUnionType.ofNull();
+			case 1: {
+				final UInteger foo = decoder.readUInt32("foo");
+				return CustomUnionType.ofFoo(foo);
+			}
+			case 2: {
+				final String bar = decoder.readString("bar");
+				return CustomUnionType.ofBar(bar);
+			}
+			default:
+				throw new UaSerializationException(StatusCodes.Bad_DecodingError,
+						"unknown field in Union CustomUnionType: " + switchValue);
+			}
+		}
 
-    public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(String.format(
-        "nsu=%s;s=%s",
-        ExampleNamespace.NAMESPACE_URI,
-        "DataType.CustomUnionType.BinaryEncoding"
-    ));
+		@Override
+		public void encode(final SerializationContext context, final UaEncoder encoder, final CustomUnionType value) {
+			encoder.writeUInt32("SwitchValue", uint(value.type.ordinal()));
+			switch (value.type) {
+			case Null:
+				break;
+			case Foo: {
+				encoder.writeUInt32("foo", value.asFoo());
+				break;
+			}
+			case Bar: {
+				encoder.writeString("bar", value.asBar());
+				break;
+			}
+			default:
+				throw new IllegalArgumentException("unhandled type: " + value.type);
+			}
+		}
 
-    private final Type type;
-    private final Object value;
+		@Override
+		public Class<CustomUnionType> getType() {
+			return CustomUnionType.class;
+		}
+	}
 
-    private CustomUnionType(Type type, Object value) {
-        this.type = type;
-        this.value = value;
-    }
+	enum Type {
+		Bar, Foo, Null
+	}
 
-    @Override
-    public ExpandedNodeId getTypeId() {
-        return TYPE_ID;
-    }
+	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType.BinaryEncoding"));
+	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType"));
 
-    @Override
-    public ExpandedNodeId getBinaryEncodingId() {
-        return BINARY_ENCODING_ID;
-    }
+	public static CustomUnionType ofBar(final String value) {
+		return new CustomUnionType(Type.Bar, value);
+	}
 
-    @Override
-    public ExpandedNodeId getXmlEncodingId() {
-        // XML encoding not supported
-        return ExpandedNodeId.NULL_VALUE;
-    }
+	public static CustomUnionType ofFoo(final UInteger value) {
+		return new CustomUnionType(Type.Foo, value);
+	}
 
-    public UInteger asFoo() {
-        return (UInteger) value;
-    }
+	public static CustomUnionType ofNull() {
+		return new CustomUnionType(Type.Null, null);
+	}
 
-    public String asBar() {
-        return (String) value;
-    }
+	private final Type type;
 
-    public boolean isNull() {
-        return type == Type.Null;
-    }
+	private final Object value;
 
-    public boolean isFoo() {
-        return type == Type.Foo;
-    }
+	private CustomUnionType(final Type type, final Object value) {
+		this.type = type;
+		this.value = value;
+	}
 
-    public boolean isBar() {
-        return type == Type.Bar;
-    }
+	public String asBar() {
+		return (String) value;
+	}
 
-    public static CustomUnionType ofNull() {
-        return new CustomUnionType(Type.Null, null);
-    }
+	public UInteger asFoo() {
+		return (UInteger) value;
+	}
 
-    public static CustomUnionType ofFoo(UInteger value) {
-        return new CustomUnionType(Type.Foo, value);
-    }
+	@Override
+	public ExpandedNodeId getBinaryEncodingId() {
+		return BINARY_ENCODING_ID;
+	}
 
-    public static CustomUnionType ofBar(String value) {
-        return new CustomUnionType(Type.Bar, value);
-    }
+	@Override
+	public ExpandedNodeId getTypeId() {
+		return TYPE_ID;
+	}
 
-    enum Type {
-        Null,
-        Foo,
-        Bar
-    }
+	@Override
+	public ExpandedNodeId getXmlEncodingId() {
+		// XML encoding not supported
+		return ExpandedNodeId.NULL_VALUE;
+	}
 
-    public static class Codec extends GenericDataTypeCodec<CustomUnionType> {
-        @Override
-        public Class<CustomUnionType> getType() {
-            return CustomUnionType.class;
-        }
+	public boolean isBar() {
+		return type == Type.Bar;
+	}
 
-        @Override
-        public CustomUnionType decode(SerializationContext context, UaDecoder decoder) {
-            UInteger switchValue = decoder.readUInt32("SwitchValue");
-            switch (switchValue.intValue()) {
-                case 0:
-                    return CustomUnionType.ofNull();
-                case 1: {
-                    UInteger foo = decoder.readUInt32("foo");
-                    return CustomUnionType.ofFoo(foo);
-                }
-                case 2: {
-                    String bar = decoder.readString("bar");
-                    return CustomUnionType.ofBar(bar);
-                }
-                default:
-                    throw new UaSerializationException(
-                        StatusCodes.Bad_DecodingError,
-                        "unknown field in Union CustomUnionType: " + switchValue
-                    );
-            }
-        }
+	public boolean isFoo() {
+		return type == Type.Foo;
+	}
 
-        @Override
-        public void encode(SerializationContext context, UaEncoder encoder, CustomUnionType value) {
-            encoder.writeUInt32("SwitchValue", uint(value.type.ordinal()));
-            switch (value.type) {
-                case Null:
-                    break;
-                case Foo: {
-                    encoder.writeUInt32("foo", value.asFoo());
-                    break;
-                }
-                case Bar: {
-                    encoder.writeString("bar", value.asBar());
-                    break;
-                }
-                default:
-                    throw new IllegalArgumentException("unhandled type: " + value.type);
-            }
-        }
-    }
+	public boolean isNull() {
+		return type == Type.Null;
+	}
 
 }

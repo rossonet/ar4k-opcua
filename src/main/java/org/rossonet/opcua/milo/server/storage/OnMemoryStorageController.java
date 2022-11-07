@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.milo.opcua.sdk.core.Reference;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
+import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.NamespaceTable;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
@@ -46,6 +47,12 @@ public class OnMemoryStorageController implements StorageController {
 	}
 
 	@Override
+	public void attributeChanged(final UaNode node, final AttributeId attributeId, final Object value) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
 	public boolean containsNode(final ExpandedNodeId nodeId, final NamespaceTable namespaceTable) {
 		return nodeId.toNodeId(namespaceTable).map(this::containsNode).orElse(false);
 	}
@@ -57,13 +64,11 @@ public class OnMemoryStorageController implements StorageController {
 
 	@Override
 	public Optional<UaNode> getNode(final ExpandedNodeId nodeId, final NamespaceTable namespaceTable) {
-		logger.info("getNode " + nodeId);
 		return nodeId.toNodeId(namespaceTable).flatMap(this::getNode);
 	}
 
 	@Override
 	public Optional<UaNode> getNode(final NodeId nodeId) {
-		logger.info("getNode " + nodeId);
 		return Optional.ofNullable(nodeMap.get(nodeId));
 	}
 

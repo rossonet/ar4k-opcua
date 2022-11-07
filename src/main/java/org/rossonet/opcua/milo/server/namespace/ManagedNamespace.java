@@ -1,12 +1,7 @@
 package org.rossonet.opcua.milo.server.namespace;
 
-import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.ubyte;
-import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.ushort;
-
 import java.util.List;
 import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.eclipse.milo.opcua.sdk.core.Reference;
 import org.eclipse.milo.opcua.sdk.server.Lifecycle;
@@ -16,23 +11,20 @@ import org.eclipse.milo.opcua.sdk.server.UaNodeManager;
 import org.eclipse.milo.opcua.sdk.server.api.AddressSpaceFilter;
 import org.eclipse.milo.opcua.sdk.server.api.AddressSpaceFragment;
 import org.eclipse.milo.opcua.sdk.server.api.DataItem;
-import org.eclipse.milo.opcua.sdk.server.api.EventItem;
 import org.eclipse.milo.opcua.sdk.server.api.ManagedAddressSpaceFragment;
 import org.eclipse.milo.opcua.sdk.server.api.MonitoredItem;
 import org.eclipse.milo.opcua.sdk.server.api.Namespace;
 import org.eclipse.milo.opcua.sdk.server.api.SimpleAddressSpaceFilter;
 import org.eclipse.milo.opcua.sdk.server.dtd.DataTypeDictionaryManager;
-import org.eclipse.milo.opcua.sdk.server.model.nodes.objects.BaseEventTypeNode;
-import org.eclipse.milo.opcua.sdk.server.model.nodes.objects.ServerTypeNode;
+import org.eclipse.milo.opcua.sdk.server.nodes.AttributeObserver;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaFolderNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaMethodNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaNodeContext;
 import org.eclipse.milo.opcua.sdk.server.nodes.factories.NodeFactory;
 import org.eclipse.milo.opcua.sdk.server.util.SubscriptionModel;
+import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
-import org.eclipse.milo.opcua.stack.core.types.builtin.ByteString;
-import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.QualifiedName;
@@ -63,17 +55,13 @@ import org.rossonet.utils.LogHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ManagedNamespace extends ManagedAddressSpaceFragment implements Namespace {
+public class ManagedNamespace extends ManagedAddressSpaceFragment implements Namespace, AttributeObserver {
 
 	private static final Logger logger = LoggerFactory.getLogger(ManagedNamespace.class);
 
 	private final DataTypeDictionaryManager dictionaryManager;
 
-	private volatile Thread eventThread;
-
 	private final AddressSpaceFilter filter;
-
-	private volatile boolean keepPostingEvents = true;
 
 	private final LifecycleManager lifecycleManager = new LifecycleManager();
 
@@ -86,12 +74,11 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	private final Ar4kOpcUaServer wrapperOpcUaServer;
 
 	public ManagedNamespace(final Ar4kOpcUaServer opcUaServer, final StorageController storageController) {
-		super(opcUaServer.getServer(), new StorageNodeManager(storageController));
+		super(opcUaServer.getServer(), new StorageNodeManager(opcUaServer, storageController));
 		this.storageController = storageController;
 		this.namespaceUri = opcUaServer.getOpcUaServerConfiguration().getNameSpaceUri();
 		this.namespaceIndex = opcUaServer.getServer().getNamespaceTable().addUri(namespaceUri);
 		filter = SimpleAddressSpaceFilter.create(nodeId -> nodeId.getNamespaceIndex().equals(getNamespaceIndex()));
-
 		getLifecycleManager().addLifecycle(this.storageController);
 		getLifecycleManager().addLifecycle(new Lifecycle() {
 			@Override
@@ -106,7 +93,6 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 				registerNodeManager(getNodeManager());
 			}
 		});
-
 		this.wrapperOpcUaServer = opcUaServer;
 		subscriptionModel = new SubscriptionModel(this.wrapperOpcUaServer.getServer(), this);
 		dictionaryManager = new DataTypeDictionaryManager(getNodeContext(), this.namespaceUri);
@@ -115,11 +101,18 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 		getLifecycleManager().addStartupTask(this::createAndAddNodes);
 		rulesEngine = new RulesEngine(this);
 		getLifecycleManager().addLifecycle(rulesEngine);
-		getLifecycleManager().addLifecycle(getEventDemoLifecycle());
 		logger.debug("ManagedNamespace created with NodeManager -> " + super.getNodeManager());
 	}
 
 	public void addNode(final AddNodesContext context, final AddNodesItem addNodeItem) throws Exception {
+		rulesEngine.addNode(context, addNodeItem);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.addNode(context, addNodeItem);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		final UaNode node = MiloHelper.createNodeFromAddNodeItem(this, context, addNodeItem);
 		getNodeManager().addNode(node);
 		node.addReference(new Reference(getNodeManager().get(node.getNodeId()).getNodeId(), Identifiers.Organizes,
@@ -150,6 +143,19 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	}
 
 	@Override
+	public void attributeChanged(final UaNode node, final AttributeId attributeId, final Object value) {
+		storageController.attributeChanged(node, attributeId, value);
+		rulesEngine.attributeChanged(node, attributeId, value);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.attributeChanged(node, attributeId, value);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
+	}
+
+	@Override
 	public void browse(final BrowseContext context, final NodeId nodeId) {
 		super.browse(context, nodeId);
 	}
@@ -161,17 +167,41 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 
 	@Override
 	public void call(final CallContext context, final List<CallMethodRequest> requests) {
+		rulesEngine.call(context, requests);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.call(context, requests);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		super.call(context, requests);
 	}
 
 	@Override
 	public void deleteNodes(final DeleteNodesContext context, final List<DeleteNodesItem> nodesToDelete) {
+		rulesEngine.deleteNodes(context, nodesToDelete);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.deleteNodes(context, nodesToDelete);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		super.deleteNodes(context, nodesToDelete);
 	}
 
 	@Override
 	public void deleteReferences(final DeleteReferencesContext context,
 			final List<DeleteReferencesItem> referencesToDelete) {
+		rulesEngine.deleteReferences(context, referencesToDelete);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.deleteReferences(context, referencesToDelete);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		super.deleteReferences(context, referencesToDelete);
 	}
 
@@ -182,6 +212,10 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	@Override
 	public AddressSpaceFilter getFilter() {
 		return filter;
+	}
+
+	public LifecycleManager getLifecycleManager() {
+		return lifecycleManager;
 	}
 
 	@Override
@@ -236,41 +270,31 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 
 	@Override
 	public void historyUpdate(final HistoryUpdateContext context, final List<HistoryUpdateDetails> updateDetails) {
+		rulesEngine.historyUpdate(context, updateDetails);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.historyUpdate(context, updateDetails);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		super.historyUpdate(context, updateDetails);
 	}
 
-	@Override
-	public void onCreateDataItem(final ReadValueId itemToMonitor, final Double requestedSamplingInterval,
-			final UInteger requestedQueueSize, final BiConsumer<Double, UInteger> revisionCallback) {
-		super.onCreateDataItem(itemToMonitor, requestedSamplingInterval, requestedQueueSize, revisionCallback);
-		rulesEngine.onCreateDataItem(itemToMonitor, requestedSamplingInterval, requestedQueueSize, revisionCallback);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onCreateDataItem(itemToMonitor, requestedSamplingInterval, requestedQueueSize,
-						revisionCallback);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
+	public final NodeId newNodeId(final String id) {
+		return new NodeId(namespaceIndex, id);
 	}
 
-	@Override
-	public void onCreateEventItem(final ReadValueId itemToMonitor, final UInteger requestedQueueSize,
-			final Consumer<UInteger> revisionCallback) {
-		super.onCreateEventItem(itemToMonitor, requestedQueueSize, revisionCallback);
-		rulesEngine.onCreateEventItem(itemToMonitor, requestedQueueSize, revisionCallback);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onCreateEventItem(itemToMonitor, requestedQueueSize, revisionCallback);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
+	public final NodeId newNodeId(final UUID id) {
+		return new NodeId(namespaceIndex, id);
+	}
+
+	public final QualifiedName newQualifiedName(final String name) {
+		return new QualifiedName(namespaceIndex, name);
 	}
 
 	@Override
 	public void onDataItemsCreated(final List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsCreated(dataItems);
 		rulesEngine.onDataItemsCreated(dataItems);
 		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
 			try {
@@ -283,7 +307,6 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 
 	@Override
 	public void onDataItemsDeleted(final List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsDeleted(dataItems);
 		rulesEngine.onDataItemsDeleted(dataItems);
 		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
 			try {
@@ -292,11 +315,11 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 				logger.error("invoke audit hook", a);
 			}
 		}
+
 	}
 
 	@Override
 	public void onDataItemsModified(final List<DataItem> dataItems) {
-		subscriptionModel.onDataItemsModified(dataItems);
 		rulesEngine.onDataItemsModified(dataItems);
 		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
 			try {
@@ -305,79 +328,11 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 				logger.error("invoke audit hook", a);
 			}
 		}
-	}
 
-	@Override
-	public void onEventItemsCreated(final List<EventItem> eventItems) {
-		super.onEventItemsCreated(eventItems);
-		rulesEngine.onEventItemsCreated(eventItems);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onEventItemsCreated(eventItems);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
-	}
-
-	@Override
-	public void onEventItemsDeleted(final List<EventItem> eventItems) {
-		super.onEventItemsDeleted(eventItems);
-		rulesEngine.onEventItemsDeleted(eventItems);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onEventItemsDeleted(eventItems);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
-	}
-
-	@Override
-	public void onEventItemsModified(final List<EventItem> eventItems) {
-		super.onEventItemsModified(eventItems);
-		rulesEngine.onEventItemsModified(eventItems);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onEventItemsModified(eventItems);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
-	}
-
-	@Override
-	public void onModifyDataItem(final ReadValueId itemToModify, final Double requestedSamplingInterval,
-			final UInteger requestedQueueSize, final BiConsumer<Double, UInteger> revisionCallback) {
-		super.onModifyDataItem(itemToModify, requestedSamplingInterval, requestedQueueSize, revisionCallback);
-		rulesEngine.onModifyDataItem(itemToModify, requestedSamplingInterval, requestedQueueSize, revisionCallback);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onModifyDataItem(itemToModify, requestedSamplingInterval, requestedQueueSize,
-						revisionCallback);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
-	}
-
-	@Override
-	public void onModifyEventItem(final ReadValueId itemToModify, final UInteger requestedQueueSize,
-			final Consumer<UInteger> revisionCallback) {
-		super.onModifyEventItem(itemToModify, requestedQueueSize, revisionCallback);
-		rulesEngine.onModifyEventItem(itemToModify, requestedQueueSize, revisionCallback);
-		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
-			try {
-				auditListener.onModifyEventItem(itemToModify, requestedQueueSize, revisionCallback);
-			} catch (final Exception a) {
-				logger.error("invoke audit hook", a);
-			}
-		}
 	}
 
 	@Override
 	public void onMonitoringModeChanged(final List<MonitoredItem> monitoredItems) {
-		subscriptionModel.onMonitoringModeChanged(monitoredItems);
 		rulesEngine.onMonitoringModeChanged(monitoredItems);
 		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
 			try {
@@ -386,11 +341,20 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 				logger.error("invoke audit hook", a);
 			}
 		}
+
 	}
 
 	@Override
 	public void read(final ReadContext context, final Double maxAge, final TimestampsToReturn timestamps,
 			final List<ReadValueId> readValueIds) {
+		rulesEngine.read(context, maxAge, timestamps, readValueIds);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.read(context, maxAge, timestamps, readValueIds);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		super.read(context, maxAge, timestamps, readValueIds);
 	}
 
@@ -436,6 +400,14 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 
 	@Override
 	public void write(final WriteContext context, final List<WriteValue> writeValues) {
+		rulesEngine.write(context, writeValues);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.write(context, writeValues);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		super.write(context, writeValues);
 	}
 
@@ -474,7 +446,15 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 
 	}
 
-	private void addReference(final AddReferencesContext context, final AddReferencesItem r) {
+	private void addReference(final AddReferencesContext context, final AddReferencesItem reference) {
+		rulesEngine.addReference(context, reference);
+		for (final AuditListener auditListener : wrapperOpcUaServer.listAuditHooks()) {
+			try {
+				auditListener.addReference(context, reference);
+			} catch (final Exception a) {
+				logger.error("invoke audit hook", a);
+			}
+		}
 		// TODO Implementare aggiunta dinamica referenza
 
 	}
@@ -525,43 +505,6 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 		addShutdownMethod();
 		addGenerateFromDtdlMethod();
 		addInstantiateObjectMethod();
-
-	}
-
-	private Lifecycle getEventDemoLifecycle() {
-		return new Lifecycle() {
-			@Override
-			public void shutdown() {
-				try {
-					keepPostingEvents = false;
-					eventThread.interrupt();
-					eventThread.join();
-				} catch (final InterruptedException ignored) {
-					// ignored
-				}
-			}
-
-			@Override
-			public void startup() {
-				startBogusEventNotifier();
-			}
-		};
-	}
-
-	private LifecycleManager getLifecycleManager() {
-		return lifecycleManager;
-	}
-
-	private final NodeId newNodeId(final String id) {
-		return new NodeId(namespaceIndex, id);
-	}
-
-	private final NodeId newNodeId(final UUID id) {
-		return new NodeId(namespaceIndex, id);
-	}
-
-	private final QualifiedName newQualifiedName(final String name) {
-		return new QualifiedName(namespaceIndex, name);
 	}
 
 	private void registerAddressSpace(final AddressSpaceFragment addressSpace) {
@@ -572,56 +515,6 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 		getServer().getAddressSpaceManager().register(nodeManager);
 	}
 
-	private void startBogusEventNotifier() {
-		if (getServer() != null && getServer().getEventFactory() != null) {
-			// Set the EventNotifier bit on Server Node for Events.
-			final UaNode serverNode = getServer().getAddressSpaceManager().getManagedNode(Identifiers.Server)
-					.orElse(null);
-
-			if (serverNode instanceof ServerTypeNode) {
-				((ServerTypeNode) serverNode).setEventNotifier(ubyte(1));
-
-				// Post a bogus Event every couple seconds
-				eventThread = new Thread(() -> {
-					while (keepPostingEvents) {
-						try {
-							final BaseEventTypeNode eventNode = getServer().getEventFactory()
-									.createEvent(newNodeId(UUID.randomUUID()), Identifiers.BaseEventType);
-
-							eventNode.setBrowseName(new QualifiedName(1, "foo"));
-							eventNode.setDisplayName(LocalizedText.english("foo"));
-							eventNode.setEventId(ByteString.of(new byte[] { 0, 1, 2, 3 }));
-							eventNode.setEventType(Identifiers.BaseEventType);
-							eventNode.setSourceNode(serverNode.getNodeId());
-							eventNode.setSourceName(serverNode.getDisplayName().getText());
-							eventNode.setTime(DateTime.now());
-							eventNode.setReceiveTime(DateTime.NULL_VALUE);
-							eventNode.setMessage(LocalizedText.english("event message!"));
-							eventNode.setSeverity(ushort(2));
-
-							// noinspection UnstableApiUsage
-							getServer().getEventBus().post(eventNode);
-
-							eventNode.delete();
-						} catch (final Throwable e) {
-							logger.error("Error creating EventNode: {}", e.getMessage(),
-									LogHelper.stackTraceToString(e, 4));
-						}
-
-						try {
-							// noinspection BusyWait
-							Thread.sleep(2_000);
-						} catch (final InterruptedException ignored) {
-							// ignored
-						}
-					}
-				}, "bogus-event-poster");
-
-				eventThread.start();
-			}
-		}
-	}
-
 	private void unregisterAddressSpace(final AddressSpaceFragment addressSpace) {
 		getServer().getAddressSpaceManager().unregister(addressSpace);
 	}
@@ -629,4 +522,5 @@ public class ManagedNamespace extends ManagedAddressSpaceFragment implements Nam
 	private void unregisterNodeManager(final UaNodeManager nodeManager) {
 		getServer().getAddressSpaceManager().unregister(nodeManager);
 	}
+
 }

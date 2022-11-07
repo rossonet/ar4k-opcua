@@ -1,4 +1,4 @@
-package org.rossonet.opcua.milo.server.storage;
+package org.rossonet.opcua.milo.server;
 
 import java.util.List;
 import java.util.Optional;
@@ -6,115 +6,148 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 
 import org.eclipse.milo.opcua.sdk.core.Reference;
-import org.eclipse.milo.opcua.sdk.server.UaNodeManager;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
 import org.eclipse.milo.opcua.stack.core.NamespaceTable;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
-import org.rossonet.opcua.milo.server.Ar4kOpcUaServer;
+import org.rossonet.opcua.milo.server.storage.OnMemoryStorageController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.LinkedHashMultiset;
 
-public class StorageNodeManager extends UaNodeManager {
+public class LoggerStorageController extends OnMemoryStorageController {
 
-	public static final Logger logger = LoggerFactory.getLogger(StorageNodeManager.class);
-
-	private final Ar4kOpcUaServer opcUaServer;
-
-	private final StorageController storageController;
-
-	public StorageNodeManager(final Ar4kOpcUaServer opcUaServer, final StorageController storageController) {
-		this.storageController = storageController;
-		this.opcUaServer = opcUaServer;
-		storageController.init();
-	}
+	private static final Logger logger = LoggerFactory.getLogger(LoggerStorageController.class);
 
 	@Override
 	public Optional<UaNode> addNode(final UaNode node) {
-		opcUaServer.addNodeObserver(node);
-		return storageController.addNode(node);
+		log(node.toString());
+		return super.addNode(node);
 	}
 
 	@Override
 	public void addReference(final Reference reference) {
-		storageController.addReference(reference);
+		log(reference.toString());
+		super.addReference(reference);
 	}
 
 	@Override
 	public void addReferences(final Reference reference, final NamespaceTable namespaceTable) {
-		storageController.addReferences(reference, namespaceTable);
+		log(reference.toString());
+		super.addReferences(reference, namespaceTable);
 	}
 
 	@Override
 	public boolean containsNode(final ExpandedNodeId nodeId, final NamespaceTable namespaceTable) {
-		return storageController.containsNode(nodeId, namespaceTable);
+		log(nodeId.toString());
+		return super.containsNode(nodeId, namespaceTable);
 	}
 
 	@Override
 	public boolean containsNode(final NodeId nodeId) {
-		return storageController.containsNode(nodeId);
+		log(nodeId.toString());
+		return super.containsNode(nodeId);
+	}
+
+	@Override
+	public boolean equals(final Object obj) {
+		log(obj.toString());
+		return super.equals(obj);
 	}
 
 	@Override
 	public Optional<UaNode> getNode(final ExpandedNodeId nodeId, final NamespaceTable namespaceTable) {
-		return storageController.getNode(nodeId, namespaceTable);
+		log(nodeId.toString());
+		return super.getNode(nodeId, namespaceTable);
 	}
 
 	@Override
 	public Optional<UaNode> getNode(final NodeId nodeId) {
-		return storageController.getNode(nodeId);
+		log(nodeId.toString());
+		return super.getNode(nodeId);
 	}
 
 	@Override
 	public List<NodeId> getNodeIds() {
-		return storageController.getNodeIds();
+		log(null);
+		return super.getNodeIds();
+	}
+
+	@Override
+	public ConcurrentMap<NodeId, UaNode> getNodeMap() {
+		log(null);
+		return super.getNodeMap();
 	}
 
 	@Override
 	public List<UaNode> getNodes() {
-		return storageController.getNodes();
+		log(null);
+		return super.getNodes();
 	}
 
 	@Override
 	public ConcurrentMap<NodeId, LinkedHashMultiset<Reference>> getReferenceMap() {
-		return storageController.getReferenceMap();
+		log(null);
+		return super.getReferenceMap();
 	}
 
 	@Override
 	public List<Reference> getReferences(final NodeId nodeId) {
-		return storageController.getReferences(nodeId);
+		log(nodeId.toString());
+		return super.getReferences(nodeId);
 	}
 
 	@Override
 	public List<Reference> getReferences(final NodeId nodeId, final Predicate<Reference> filter) {
-		return storageController.getReferences(nodeId, filter);
+		log(nodeId.toString());
+		return super.getReferences(nodeId, filter);
+	}
+
+	@Override
+	public void init() {
+		log(null);
+		super.init();
+	}
+
+	public void log(final String parameter) {
+		logger.trace(" ** " + Thread.currentThread().getStackTrace()[2].getMethodName() + " -> " + parameter);
 	}
 
 	@Override
 	public Optional<UaNode> removeNode(final ExpandedNodeId nodeId, final NamespaceTable namespaceTable) {
-		return storageController.removeNode(nodeId, namespaceTable);
+		log(nodeId.toString());
+		return super.removeNode(nodeId, namespaceTable);
 	}
 
 	@Override
 	public Optional<UaNode> removeNode(final NodeId nodeId) {
-		return storageController.removeNode(nodeId);
+		log(nodeId.toString());
+		return super.removeNode(nodeId);
 	}
 
 	@Override
 	public void removeReference(final Reference reference) {
-		storageController.removeReference(reference);
+		log(reference.toString());
+		super.removeReference(reference);
 	}
 
 	@Override
 	public void removeReferences(final Reference reference, final NamespaceTable namespaceTable) {
-		storageController.removeReferences(reference, namespaceTable);
+		log(reference.toString());
+		super.removeReferences(reference, namespaceTable);
 	}
 
 	@Override
-	protected ConcurrentMap<NodeId, UaNode> getNodeMap() {
-		return storageController.getNodeMap();
+	public void shutdown() {
+		log(null);
+		super.shutdown();
+	}
+
+	@Override
+	public void startup() {
+		log(null);
+		super.startup();
 	}
 
 }

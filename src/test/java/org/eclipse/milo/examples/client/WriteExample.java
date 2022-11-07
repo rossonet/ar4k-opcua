@@ -44,9 +44,10 @@ public class WriteExample implements ClientExample {
 		// synchronous connect
 		client.connect().get();
 
-		final List<NodeId> nodeIds = ImmutableList.of(new NodeId(2, "HelloWorld/ScalarTypes/Int32"));
+		final List<NodeId> nodeIds = ImmutableList.of(new NodeId(1, "HelloWorld/ScalarTypes/Int32"));
 
 		for (int i = 0; i < 10; i++) {
+			logger.info("try write on " + nodeIds);
 			final Variant v = new Variant(i);
 
 			// don't write status or timestamps
@@ -61,6 +62,8 @@ public class WriteExample implements ClientExample {
 
 			if (status.isGood()) {
 				logger.info("Wrote '{}' to nodeId={}", v, nodeIds.get(0));
+			} else {
+				logger.info("Wrote '{}' to nodeId={} with status {}", v, nodeIds.get(0), status);
 			}
 		}
 

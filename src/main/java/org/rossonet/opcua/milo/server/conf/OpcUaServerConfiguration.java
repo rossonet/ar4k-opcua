@@ -35,7 +35,7 @@ public class OpcUaServerConfiguration implements Serializable {
 
 	public static final int DEFAULT_TCP_BIND_PORT = 12686;
 
-	public static final String DEFAULT_URN_ROSSONET_OPCUA_SERVER = "urn:rossonet:opcua:server";
+	public static final String DEFAULT_URI_ROSSONET_OPCUA_SERVER = "urn:rossonet:opcua:server";
 
 	private static final int DEFAULT_HTTPS_BIND_PORT = 8443;
 
@@ -116,7 +116,7 @@ public class OpcUaServerConfiguration implements Serializable {
 
 	public String getNameSpaceUri() {
 		// TODO Auto-generated method stub
-		return DEFAULT_URN_ROSSONET_OPCUA_SERVER;
+		return DEFAULT_URI_ROSSONET_OPCUA_SERVER;
 	}
 
 	public String getPath() {

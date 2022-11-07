@@ -41,7 +41,8 @@ public class ServerRunnerTest {
 
 	public static void runMiloServerExample() throws Exception {
 		opcServerConfiguration = new OpcUaServerConfiguration();
-		server = Ar4kOpcUaServer.getNewServer(opcServerConfiguration, new OnMemoryStorageController());
+		final OnMemoryStorageController storageController = new LoggerStorageController();
+		server = Ar4kOpcUaServer.getNewServer(opcServerConfiguration, storageController);
 		final ShutdownListener shutdownReason = new ShutdownListener() {
 			@Override
 			public void shutdown(final ShutdownReason reason) {
@@ -50,6 +51,7 @@ public class ServerRunnerTest {
 			}
 		};
 		server.addShutdownHook(shutdownReason);
+		server.addAuditHook(new LogAuditListener());
 		server.startup();
 	}
 

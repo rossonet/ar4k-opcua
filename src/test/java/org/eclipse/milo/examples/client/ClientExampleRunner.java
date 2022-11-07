@@ -18,12 +18,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.Security;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.eclipse.milo.examples.server.ExampleServer;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.stack.client.security.DefaultClientCertificateValidator;
 import org.eclipse.milo.opcua.stack.core.Stack;
@@ -60,38 +57,8 @@ public class ClientExampleRunner {
 		if (serverRequired) {
 			logger.info("starting server");
 			exampleServer = new ExampleServer();
-			exampleServer.startup().get();
+			exampleServer.startup();
 		}
-	}
-
-	private OpcUaClient createClient() throws Exception {
-		final Path securityTempDir = Paths.get(System.getProperty("java.io.tmpdir"), "client", "security");
-		Files.createDirectories(securityTempDir);
-		if (!Files.exists(securityTempDir)) {
-			throw new Exception("unable to create security dir: " + securityTempDir);
-		}
-
-		final File pkiDir = securityTempDir.resolve("pki").toFile();
-
-		LoggerFactory.getLogger(getClass()).info("security dir: {}", securityTempDir.toAbsolutePath());
-		LoggerFactory.getLogger(getClass()).info("security pki dir: {}", pkiDir.getAbsolutePath());
-
-		final KeyStoreLoader loader = new KeyStoreLoader().load(securityTempDir);
-
-		trustListManager = new DefaultTrustListManager(pkiDir);
-
-		final DefaultClientCertificateValidator certificateValidator = new DefaultClientCertificateValidator(
-				trustListManager);
-
-		return OpcUaClient.create(clientExample.getEndpointUrl(),
-				endpoints -> endpoints.stream().filter(clientExample.endpointFilter()).findFirst(),
-				configBuilder -> configBuilder.setApplicationName(LocalizedText.english("eclipse milo opc-ua client"))
-						.setApplicationUri("urn:eclipse:milo:examples:client").setKeyPair(loader.getClientKeyPair())
-						.setCertificate(loader.getClientCertificate())
-						.setCertificateChain(loader.getClientCertificateChain())
-						.setCertificateValidator(certificateValidator)
-						.setIdentityProvider(clientExample.getIdentityProvider()).setRequestTimeout(uint(5000))
-						.build());
 	}
 
 	public boolean getTestResult() {
@@ -115,7 +82,7 @@ public class ClientExampleRunner {
 			 * client.getConfig().getCertificate().ifPresent(certificate ->
 			 * exampleServer.getServer().getConfig()
 			 * .getTrustListManager().addTrustedCertificate(certificate));
-			 * 
+			 *
 			 * // Make the example client trust the example server certificate by default.
 			 * exampleServer.getServer().getConfig().getCertificateManager().getCertificates
 			 * () .forEach(certificate ->
@@ -129,10 +96,10 @@ public class ClientExampleRunner {
 				try {
 					client.disconnect().get();
 					if (serverRequired && exampleServer != null) {
-						exampleServer.shutdown().get(30, TimeUnit.SECONDS);
+						exampleServer.shutdown();
 					}
 					Stack.releaseSharedResources();
-				} catch (InterruptedException | ExecutionException | TimeoutException e) {
+				} catch (final Exception e) {
 					logger.error("Error disconnecting: {}", e.getMessage(), e);
 				}
 
@@ -174,6 +141,36 @@ public class ClientExampleRunner {
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private OpcUaClient createClient() throws Exception {
+		final Path securityTempDir = Paths.get(System.getProperty("java.io.tmpdir"), "client", "security");
+		Files.createDirectories(securityTempDir);
+		if (!Files.exists(securityTempDir)) {
+			throw new Exception("unable to create security dir: " + securityTempDir);
+		}
+
+		final File pkiDir = securityTempDir.resolve("pki").toFile();
+
+		LoggerFactory.getLogger(getClass()).info("security dir: {}", securityTempDir.toAbsolutePath());
+		LoggerFactory.getLogger(getClass()).info("security pki dir: {}", pkiDir.getAbsolutePath());
+
+		final KeyStoreLoader loader = new KeyStoreLoader().load(securityTempDir);
+
+		trustListManager = new DefaultTrustListManager(pkiDir);
+
+		final DefaultClientCertificateValidator certificateValidator = new DefaultClientCertificateValidator(
+				trustListManager);
+
+		return OpcUaClient.create(clientExample.getEndpointUrl(),
+				endpoints -> endpoints.stream().filter(clientExample.endpointFilter()).findFirst(),
+				configBuilder -> configBuilder.setApplicationName(LocalizedText.english("eclipse milo opc-ua client"))
+						.setApplicationUri("urn:eclipse:milo:examples:client").setKeyPair(loader.getClientKeyPair())
+						.setCertificate(loader.getClientCertificate())
+						.setCertificateChain(loader.getClientCertificateChain())
+						.setCertificateValidator(certificateValidator)
+						.setIdentityProvider(clientExample.getIdentityProvider()).setRequestTimeout(uint(5000))
+						.build());
 	}
 
 }

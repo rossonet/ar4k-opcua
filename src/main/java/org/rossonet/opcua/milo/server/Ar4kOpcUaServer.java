@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.util.Collection;
 
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
+import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
 import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 import org.rossonet.opcua.milo.server.listener.AuditListener;
 import org.rossonet.opcua.milo.server.listener.ShutdownListener;
@@ -18,6 +19,8 @@ public interface Ar4kOpcUaServer extends Closeable {
 	}
 
 	public void addAuditHook(AuditListener shutdownListener);
+
+	public void addNodeObserver(UaNode node);
 
 	public void addShutdownHook(ShutdownListener shutdownListener);
 

@@ -8,6 +8,7 @@ import java.util.function.Predicate;
 import org.eclipse.milo.opcua.sdk.core.Reference;
 import org.eclipse.milo.opcua.sdk.server.Lifecycle;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
+import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.NamespaceTable;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
@@ -21,6 +22,8 @@ public interface StorageController extends Lifecycle {
 	void addReference(Reference reference);
 
 	void addReferences(Reference reference, NamespaceTable namespaceTable);
+
+	void attributeChanged(UaNode node, AttributeId attributeId, Object value);
 
 	boolean containsNode(ExpandedNodeId nodeId, NamespaceTable namespaceTable);
 

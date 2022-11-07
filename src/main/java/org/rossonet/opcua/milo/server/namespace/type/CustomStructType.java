@@ -57,10 +57,10 @@ public class CustomStructType implements UaStructure {
 	}
 
 	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
-			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomStructType"));
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomStructType"));
 
 	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
-			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomStructType.BinaryEncoding"));
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomStructType.BinaryEncoding"));
 
 	private final String foo;
 	private final UInteger bar;

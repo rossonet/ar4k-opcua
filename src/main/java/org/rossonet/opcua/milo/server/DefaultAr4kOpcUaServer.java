@@ -24,6 +24,7 @@ import org.eclipse.milo.opcua.sdk.server.api.config.OpcUaServerConfig;
 import org.eclipse.milo.opcua.sdk.server.identity.CompositeValidator;
 import org.eclipse.milo.opcua.sdk.server.identity.UsernameIdentityValidator;
 import org.eclipse.milo.opcua.sdk.server.identity.X509IdentityValidator;
+import org.eclipse.milo.opcua.sdk.server.nodes.UaNode;
 import org.eclipse.milo.opcua.sdk.server.util.HostnameUtil;
 import org.eclipse.milo.opcua.stack.core.StatusCodes;
 import org.eclipse.milo.opcua.stack.core.UaRuntimeException;
@@ -94,6 +95,12 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	}
 
 	@Override
+	public void addNodeObserver(final UaNode node) {
+		node.addAttributeObserver(getNamespace());
+
+	}
+
+	@Override
 	public void addShutdownHook(final ShutdownListener shutdownListener) {
 		shutdownListeners.add(shutdownListener);
 
@@ -153,10 +160,18 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	@Override
 	public void shutdown() {
 		if (server != null) {
-			server.shutdown();
+			try {
+				server.shutdown();
+			} catch (final Exception e) {
+				logger.error(LogHelper.stackTraceToString(e, 6));
+			}
 		}
 		if (namespace != null) {
-			namespace.shutdown();
+			try {
+				namespace.shutdown();
+			} catch (final Exception e) {
+				logger.error(LogHelper.stackTraceToString(e, 6));
+			}
 		}
 	}
 
@@ -242,7 +257,7 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 		return endpointConfigurations;
 	}
 
-	private void createServer() throws Exception {
+	private synchronized void createServer() throws Exception {
 		final DefaultCertificateManager certificateManager = new DefaultCertificateManager(
 				opcUaServerConfiguration.getServerKeyPair(), opcUaServerConfiguration.getServerCertificateChain());
 		final DefaultTrustListManager trustListManager = new DefaultTrustListManager(

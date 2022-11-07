@@ -77,10 +77,10 @@ public class CustomUnionType extends Union implements UaStructure {
 	}
 
 	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
-			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType"));
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType"));
 
 	public static final ExpandedNodeId BINARY_ENCODING_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
-			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType.BinaryEncoding"));
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomUnionType.BinaryEncoding"));
 
 	public static CustomUnionType ofBar(String value) {
 		return new CustomUnionType(Type.Bar, value);

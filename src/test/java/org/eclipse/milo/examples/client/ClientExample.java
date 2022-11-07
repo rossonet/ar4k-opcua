@@ -13,12 +13,12 @@ package org.eclipse.milo.examples.client;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-import org.eclipse.milo.examples.server.ExampleServer;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.sdk.client.api.identity.AnonymousProvider;
 import org.eclipse.milo.opcua.sdk.client.api.identity.IdentityProvider;
 import org.eclipse.milo.opcua.stack.core.security.SecurityPolicy;
 import org.eclipse.milo.opcua.stack.core.types.structured.EndpointDescription;
+import org.rossonet.opcua.milo.server.conf.OpcUaServerConfiguration;
 
 public interface ClientExample {
 
@@ -27,7 +27,8 @@ public interface ClientExample {
 	}
 
 	default String getEndpointUrl() {
-		return "opc.tcp://127.0.0.1:" + ExampleServer.TCP_BIND_PORT + ExampleServer.MILO_DISCOVERY_PATH;
+		return "opc.tcp://127.0.0.1:" + OpcUaServerConfiguration.DEFAULT_TCP_BIND_PORT
+				+ OpcUaServerConfiguration.DEFAULT_DISCOVERY_PATH;
 	}
 
 	default IdentityProvider getIdentityProvider() {

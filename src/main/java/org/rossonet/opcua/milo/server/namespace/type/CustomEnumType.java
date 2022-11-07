@@ -40,7 +40,7 @@ public enum CustomEnumType implements UaEnumeration {
 	}
 
 	public static final ExpandedNodeId TYPE_ID = ExpandedNodeId.parse(String.format("nsu=%s;s=%s",
-			OpcUaServerConfiguration.DEFAULT_URN_ROSSONET_OPCUA_SERVER, "DataType.CustomEnumType"));
+			OpcUaServerConfiguration.DEFAULT_URI_ROSSONET_OPCUA_SERVER, "DataType.CustomEnumType"));
 
 	public static CustomEnumType from(final int value) {
 		switch (value) {

@@ -99,7 +99,7 @@ public class SubscriptionExample implements ClientExample {
 		}
 
 		// let the example run for 5 seconds then terminate
-		Thread.sleep(5000);
+		Thread.sleep(10000);
 		future.complete(client);
 	}
 
