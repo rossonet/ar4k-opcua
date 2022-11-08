@@ -55,7 +55,8 @@ class DefaultAr4kOpcUaServer implements Ar4kOpcUaServer {
 	private static final Logger logger = LoggerFactory.getLogger(DefaultAr4kOpcUaServer.class);
 
 	static {
-		Security.addProvider(new BouncyCastleProvider());
+		Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
+		// Security.addProvider(new BouncyCastleProvider());
 		try {
 			NonceUtil.blockUntilSecureRandomSeeded(10, TimeUnit.SECONDS);
 		} catch (ExecutionException | InterruptedException | TimeoutException e) {

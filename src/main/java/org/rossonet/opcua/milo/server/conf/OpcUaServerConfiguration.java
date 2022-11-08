@@ -10,8 +10,11 @@ import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
+import java.security.Signature;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
 import org.eclipse.milo.opcua.sdk.server.util.HostnameUtil;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
@@ -30,12 +34,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Sets;
 
 public class OpcUaServerConfiguration implements Serializable {
-
 	public static final String DEFAULT_DISCOVERY_PATH = "/milo/discovery";
-
 	public static final int DEFAULT_TCP_BIND_PORT = 12686;
 
 	public static final String DEFAULT_URI_ROSSONET_OPCUA_SERVER = "urn:rossonet:opcua:server";
+
+	private static final boolean DEBUG_PROVIDER = false;
 
 	private static final int DEFAULT_HTTPS_BIND_PORT = 8443;
 
@@ -46,8 +50,7 @@ public class OpcUaServerConfiguration implements Serializable {
 	private static final char[] PASSWORD = "password".toCharArray();
 
 	private static final long serialVersionUID = -4757483926119718893L;
-
-	private static final String SERVER_ALIAS = "server-ai";
+	private static final String SERVER_ALIAS = "server-opc";
 
 	private final File pkiDir;
 
@@ -206,6 +209,15 @@ public class OpcUaServerConfiguration implements Serializable {
 	}
 
 	void load(final Path baseDir) throws Exception {
+		if (DEBUG_PROVIDER) {
+			try {
+				Security.addProvider(new BouncyCastleProvider());
+				final Signature test = Signature.getInstance("SHA256WITHRSA", BouncyCastleProvider.PROVIDER_NAME);
+				System.out.println(" -- " + test.getProvider().getName() + " " + test.getAlgorithm());
+			} catch (final NoSuchAlgorithmException e) {
+				logger.error("loading encrypt algName SHA256WITHRSA", e);
+			}
+		}
 		final KeyStore keyStore = KeyStore.getInstance("PKCS12");
 		final File serverKeyStore = baseDir.resolve("opcua-server" + UUID.randomUUID().toString() + ".pfx").toFile();
 		logger.info("Loading KeyStore at {}", serverKeyStore);
@@ -215,6 +227,7 @@ public class OpcUaServerConfiguration implements Serializable {
 			final String applicationUri = getNameSpaceUri();
 			final SelfSignedCertificateBuilder builder = new SelfSignedCertificateBuilder(keyPair)
 					.setCommonName(getCommonName()).setOrganization(getOrganization())
+					// .setSignatureAlgorithm(SelfSignedCertificateBuilder.SA_SHA256_ECDSA)
 					.setOrganizationalUnit(getOrganizationalUnit()).setLocalityName(getLocalityName())
 					.setStateName(getStateName()).setCountryCode(getCountryCode()).setApplicationUri(applicationUri);
 			// Get as many hostnames and IP addresses as we can listed in the certificate.
