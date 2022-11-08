@@ -15,14 +15,11 @@ import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.NamespaceTable;
 import org.eclipse.milo.opcua.stack.core.types.builtin.ExpandedNodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.LinkedHashMultiset;
 
 public class OnMemoryStorageController implements StorageController {
 
-	private static final Logger logger = LoggerFactory.getLogger(OnMemoryStorageController.class);
 	private final ConcurrentHashMap<NodeId, UaNode> nodeMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<NodeId, LinkedHashMultiset<Reference>> referenceMap = new ConcurrentHashMap<>();
 
@@ -64,7 +61,7 @@ public class OnMemoryStorageController implements StorageController {
 
 	@Override
 	public void createClass() {
-		// TODO Auto-generated method stub
+		// non necessario
 
 	}
 
@@ -145,13 +142,13 @@ public class OnMemoryStorageController implements StorageController {
 
 	@Override
 	public void shutdown() {
-		// TODO Auto-generated method stub
+		// non necessario
 
 	}
 
 	@Override
 	public void startup() {
-		// TODO Auto-generated method stub
+		// non necessario
 
 	}
 

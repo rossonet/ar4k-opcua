@@ -183,7 +183,7 @@ public class MiloHelper {
 	}
 
 	private MiloHelper() {
-		// only for static usage
+		throw new UnsupportedOperationException("Just for static usage");
 	}
 
 }
